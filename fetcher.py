@@ -2,6 +2,8 @@ import yt_dlp
 import logging
 from db import update_stream
 from urllib.parse import urlparse, parse_qs
+from config import TIMESTAMP_PATH
+from datetime import datetime
 
 logger = logging.getLogger(__name__)
 
@@ -37,3 +39,5 @@ def process_channels(file_path='channels.txt'):
                     logger.info(f"[CACHE] Cached stream for '{name}' → {m3u8}")
                 except Exception as e:
                     logger.error(f"[ERROR] Failed to cache '{name}': {e}")
+    with open(TIMESTAMP_PATH, 'w') as ts:
+        ts.write(datetime.utcnow().isoformat())
