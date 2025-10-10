@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Access Logs</title>
+    <style>
+        body { font-family: sans-serif; padding: 20px; }
+        h1 { margin-bottom: 10px; }
+        table { border-collapse: collapse; width: 100%; margin-top: 20px; }
+        th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
+        th { background-color: #f2f2f2; }
+    </style>
+</head>
+<body>
+    <h1>📊 Redirect Access Logs</h1>
+    {% for name, entries in access_data.items() %}
+        <h2>{{ name }} ({{ entries|length }} accesses)</h2>
+        <table>
+            <tr>
+                <th>IP Address</th>
+                <th>Timestamp (UTC)</th>
+            </tr>
+            {% for entry in entries %}
+            <tr>
+                <td>{{ entry.ip }}</td>
+                <td>{{ entry.timestamp }}</td>
+            </tr>
+            {% endfor %}
+        </table>
+    {% endfor %}
+    <p><a href="/dashboard">← Back to Dashboard</a></p>
+</body>
+</html>
