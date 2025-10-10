@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Stream Dashboard</title>
+    <style>
+        body { font-family: sans-serif; padding: 20px; }
+        table { border-collapse: collapse; width: 100%; margin-top: 20px; }
+        th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
+        th { background-color: #f2f2f2; }
+        h1 { margin-bottom: 10px; }
+    </style>
+</head>
+<body>
+    <h1>📺 Cached Streams</h1>
+    <table>
+        <tr>
+            <th>Name</th>
+            <th>Redirect URL</th>
+        </tr>
+        {% for stream in streams %}
+        <tr>
+            <td>{{ stream.name }}</td>
+            <td><a href="/stream?name={{ stream.name }}" target="_blank">{{ stream.m3u8 }}</a></td>
+        </tr>
+        {% endfor %}
+    </table>
+</body>
+</html>
