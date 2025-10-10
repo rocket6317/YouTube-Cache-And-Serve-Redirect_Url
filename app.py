@@ -15,7 +15,9 @@ def stream():
         return 'Missing name parameter', 400
     m3u8 = get_stream(name)
     if m3u8:
+        print(f"[SERVE] Redirecting '{name}' to {m3u8}")
         return redirect(m3u8)
+    print(f"[MISS] Stream '{name}' not found")
     return 'Stream not found', 404
 
 if __name__ == '__main__':
