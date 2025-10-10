@@ -1,5 +1,2 @@
-import os
-
-DB_PATH = os.path.join(os.getcwd(), 'streams.db')
-
+DB_PATH = 'streams.json'
 UPDATE_INTERVAL_HOURS = 6
