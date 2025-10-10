@@ -1,7 +1,9 @@
-from flask import Flask, redirect, request
+from flask import Flask, redirect, request, render_template
 from db import init_db, get_stream
 from scheduler import start_scheduler
 from fetcher import process_channels
+from tinydb import TinyDB
+from config import DB_PATH
 import logging
 
 logging.basicConfig(level=logging.INFO, format='[%(asctime)s] [%(levelname)s] %(message)s')
@@ -23,6 +25,12 @@ def stream():
         return redirect(m3u8)
     logger.warning(f"[MISS] Stream '{name}' not found")
     return 'Stream not found', 404
+
+@app.route('/dashboard')
+def dashboard():
+    db = TinyDB(DB_PATH)
+    streams = db.all()
+    return render_template('dashboard.html', streams=streams)
 
 if __name__ == '__main__':
     app.run()
