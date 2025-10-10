@@ -1,6 +1,9 @@
 import yt_dlp
+import logging
 from db import update_stream
 from urllib.parse import urlparse, parse_qs
+
+logger = logging.getLogger(__name__)
 
 def fetch_m3u8(url):
     ydl_opts = {
@@ -31,6 +34,6 @@ def process_channels(file_path='channels.txt'):
                 try:
                     m3u8 = fetch_m3u8(url)
                     update_stream(name, url, m3u8)
-                    print(f"[CACHE] Cached stream for '{name}' → {m3u8}")
+                    logger.info(f"[CACHE] Cached stream for '{name}' → {m3u8}")
                 except Exception as e:
-                    print(f"[ERROR] Failed to cache '{name}': {e}")
+                    logger.error(f"[ERROR] Failed to cache '{name}': {e}")
