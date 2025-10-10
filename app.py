@@ -2,6 +2,10 @@ from flask import Flask, redirect, request
 from db import init_db, get_stream
 from scheduler import start_scheduler
 from fetcher import process_channels
+import logging
+
+logging.basicConfig(level=logging.INFO, format='[%(asctime)s] [%(levelname)s] %(message)s')
+logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
 init_db()
@@ -15,9 +19,9 @@ def stream():
         return 'Missing name parameter', 400
     m3u8 = get_stream(name)
     if m3u8:
-        print(f"[SERVE] Redirecting '{name}' to {m3u8}")
+        logger.info(f"[SERVE] Redirecting '{name}' to {m3u8}")
         return redirect(m3u8)
-    print(f"[MISS] Stream '{name}' not found")
+    logger.warning(f"[MISS] Stream '{name}' not found")
     return 'Stream not found', 404
 
 if __name__ == '__main__':
