@@ -1,9 +1,10 @@
 from flask import Flask, redirect, request, render_template
-from db import init_db, get_stream
+from db import init_db, get_stream, delete_stream, log_access, get_access_log
 from scheduler import start_scheduler
 from fetcher import process_channels
 from tinydb import TinyDB
-from config import DB_PATH
+from config import DB_PATH, TIMESTAMP_PATH, UPDATE_INTERVAL_HOURS
+from datetime import datetime, timedelta
 import logging
 
 logging.basicConfig(level=logging.INFO, format='[%(asctime)s] [%(levelname)s] %(message)s')
@@ -21,7 +22,9 @@ def stream():
         return 'Missing name parameter', 400
     m3u8 = get_stream(name)
     if m3u8:
-        logger.info(f"[SERVE] Redirecting '{name}' to {m3u8}")
+        ip = request.headers.get('X-Forwarded-For', request.remote_addr)
+        log_access(name, ip)
+        logger.info(f"[SERVE] Redirecting '{name}' to {m3u8} from IP {ip}")
         return redirect(m3u8)
     logger.warning(f"[MISS] Stream '{name}' not found")
     return 'Stream not found', 404
@@ -30,7 +33,48 @@ def stream():
 def dashboard():
     db = TinyDB(DB_PATH)
     streams = db.all()
-    return render_template('dashboard.html', streams=streams)
 
-if __name__ == '__main__':
-    app.run()
+    try:
+        with open(TIMESTAMP_PATH, 'r') as f:
+            last_updated = datetime.fromisoformat(f.read().strip())
+    except:
+        last_updated = None
+
+    next_update = last_updated + timedelta(hours=UPDATE_INTERVAL_HOURS) if last_updated else None
+    message = request.args.get('message')
+
+    return render_template('dashboard.html', streams=streams,
+                           last_updated=last_updated.strftime('%Y-%m-%d %H:%M UTC') if last_updated else 'Unknown',
+                           next_update=next_update.strftime('%Y-%m-%d %H:%M UTC') if next_update else 'Unknown',
+                           message=message)
+
+@app.route('/dashboard/add', methods=['GET', 'POST'])
+def add_stream():
+    if request.method == 'POST':
+        url = request.form.get('url')
+        if url:
+            with open('channels.txt', 'a') as f:
+                f.write(url.strip() + '\n')
+            process_channels()
+            logger.info(f"[ADD] Added new stream URL: {url}")
+            return redirect('/dashboard?message=✅ Stream added and cached')
+    return render_template('add.html')
+
+@app.route('/dashboard/delete', methods=['POST'])
+def delete():
+    name = request.form.get('name')
+    if name:
+        delete_stream(name)
+        logger.info(f"[DELETE] Removed stream '{name}'")
+    return redirect('/dashboard?message=🗑️ Stream deleted')
+
+@app.route('/dashboard/refresh', methods=['POST'])
+def refresh():
+    process_channels()
+    logger.info("[REFRESH] Manual refresh triggered from dashboard")
+    return redirect('/dashboard?message=✅ Links refreshed successfully')
+
+@app.route('/dashboard/logs')
+def logs():
+    access_data = get_access_log()
+    return render_template('logs.html', access_data=access_data)
