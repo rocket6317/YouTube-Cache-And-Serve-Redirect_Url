@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Add Stream</title>
+    <style>
+        body { font-family: sans-serif; padding: 20px; }
+        form { margin-top: 20px; }
+        input[type="text"] { width: 100%; padding: 8px; margin-bottom: 10px; }
+        input[type="submit"] {
+            padding: 8px 16px;
+            background-color: #28a745;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <h1>➕ Add YouTube Stream</h1>
+    <form method="POST">
+        <label for="url">YouTube URL:</label><br>
+        <input type="text" name="url" id="url" required><br>
+        <input type="submit" value="Add Stream">
+    </form>
+    <p><a href="/dashboard">← Back to Dashboard</a></p>
+</body>
+</html>
