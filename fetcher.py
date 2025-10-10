@@ -31,6 +31,6 @@ def process_channels(file_path='channels.txt'):
                 try:
                     m3u8 = fetch_m3u8(url)
                     update_stream(name, url, m3u8)
-                    print(f"Updated {name}")
+                    print(f"[CACHE] Cached stream for '{name}' → {m3u8}")
                 except Exception as e:
-                    print(f"Error processing {url}: {e}")
+                    print(f"[ERROR] Failed to cache '{name}': {e}")
