@@ -6,6 +6,4 @@ services:
     container_name: youtube-redirector
     ports:
       - "6095:6095"
-    volumes:
-      - ./streams.db:/app/streams.db
     restart: always
