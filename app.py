@@ -10,6 +10,13 @@ import logging
 logging.basicConfig(level=logging.INFO, format='[%(asctime)s] [%(levelname)s] %(message)s')
 logger = logging.getLogger(__name__)
 
+# Optional: Filter to suppress non-essential logs
+class MinimalFilter(logging.Filter):
+    def filter(self, record):
+        return any(tag in record.msg for tag in ['[CACHE]', '[SERVE]', '[ADD]', '[DELETE]', '[REFRESH]'])
+
+logger.addFilter(MinimalFilter())
+
 app = Flask(__name__)
 init_db()
 process_channels()
@@ -24,9 +31,9 @@ def stream():
     if m3u8:
         ip = request.headers.get('X-Forwarded-For', request.remote_addr)
         log_access(name, ip)
-        logger.info(f"[SERVE] Redirecting '{name}' to {m3u8} from IP {ip}")
+        logger.info(f"[SERVE] {name} served to {ip}")
         return redirect(m3u8)
-    logger.warning(f"[MISS] Stream '{name}' not found")
+    logger.warning(f"[MISS] {name} not found")
     return 'Stream not found', 404
 
 @app.route('/dashboard')
@@ -56,7 +63,8 @@ def add_stream():
             with open('channels.txt', 'a') as f:
                 f.write(url.strip() + '\n')
             process_channels()
-            logger.info(f"[ADD] Added new stream URL: {url}")
+            name = url.split('@')[-1].split('/')[0] if '@' in url else url
+            logger.info(f"[ADD] {name} added")
             return redirect('/dashboard?message=✅ Stream added and cached')
     return render_template('add.html')
 
@@ -65,13 +73,13 @@ def delete():
     name = request.form.get('name')
     if name:
         delete_stream(name)
-        logger.info(f"[DELETE] Removed stream '{name}'")
+        logger.info(f"[DELETE] {name} removed")
     return redirect('/dashboard?message=🗑️ Stream deleted')
 
 @app.route('/dashboard/refresh', methods=['POST'])
 def refresh():
     process_channels()
-    logger.info("[REFRESH] Manual refresh triggered from dashboard")
+    logger.info("[REFRESH] Manual refresh triggered")
     return redirect('/dashboard?message=✅ Links refreshed successfully')
 
 @app.route('/dashboard/logs')
