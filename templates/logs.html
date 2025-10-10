@@ -15,15 +15,26 @@
     <h1>📊 Redirect Access Logs</h1>
     {% for name, entries in access_data.items() %}
         <h2>{{ name }} ({{ entries|length }} accesses)</h2>
+        {% set ip_map = {} %}
+        {% for entry in entries %}
+            {% set ip = entry.ip %}
+            {% if ip_map[ip] is defined %}
+                {% set ip_map = ip_map.update({ip: ip_map[ip] + [entry.timestamp]}) %}
+            {% else %}
+                {% set ip_map = ip_map.update({ip: [entry.timestamp]}) %}
+            {% endif %}
+        {% endfor %}
         <table>
             <tr>
                 <th>IP Address</th>
-                <th>Timestamp (UTC)</th>
+                <th>Access Count</th>
+                <th>Most Recent Access</th>
             </tr>
-            {% for entry in entries %}
+            {% for ip, timestamps in ip_map.items() %}
             <tr>
-                <td>{{ entry.ip }}</td>
-                <td>{{ entry.timestamp }}</td>
+                <td>{{ ip }}</td>
+                <td>{{ timestamps|length }}</td>
+                <td>{{ timestamps[-1] }}</td>
             </tr>
             {% endfor %}
         </table>
