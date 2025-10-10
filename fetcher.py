@@ -36,8 +36,8 @@ def process_channels(file_path='channels.txt'):
                 try:
                     m3u8 = fetch_m3u8(url)
                     update_stream(name, url, m3u8)
-                    logger.info(f"[CACHE] Cached stream for '{name}' → {m3u8}")
+                    logger.info(f"[CACHE] {name} updated")
                 except Exception as e:
-                    logger.error(f"[ERROR] Failed to cache '{name}': {e}")
+                    logger.warning(f"[ERROR] Failed to cache {name}: {e}")
     with open(TIMESTAMP_PATH, 'w') as ts:
         ts.write(datetime.utcnow().isoformat())
