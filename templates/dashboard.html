@@ -4,23 +4,47 @@
     <title>Stream Dashboard</title>
     <style>
         body { font-family: sans-serif; padding: 20px; }
-        table { border-collapse: collapse; width: 100%; margin-top: 20px; table-layout: fixed; }
-        th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
-        th { background-color: #f2f2f2; }
-        th:nth-child(2), td:nth-child(2) {
-            width: 40%;
-            font-size: 0.85em;
-            word-break: break-all;
-        }
-        input[type="submit"] {
-            padding: 6px 12px;
+        .top-buttons {
+            display: flex;
+            gap: 10px;
             margin-bottom: 10px;
+        }
+        .top-buttons form, .top-buttons a {
+            display: inline-block;
+        }
+        .top-buttons input[type="submit"],
+        .top-buttons a.button {
+            padding: 6px 12px;
             background-color: #007bff;
             color: white;
             border: none;
+            text-decoration: none;
             cursor: pointer;
+            border-radius: 4px;
         }
-        .meta { margin-top: 10px; font-size: 0.9em; color: #555; }
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            margin-top: 10px;
+            table-layout: auto;
+        }
+        th, td {
+            border: 1px solid #ccc;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        td:nth-child(2) {
+            font-size: 0.85em;
+            word-break: break-word;
+        }
+        .meta {
+            margin-top: 10px;
+            font-size: 0.9em;
+            color: #555;
+        }
     </style>
 </head>
 <body>
@@ -32,9 +56,13 @@
         </div>
     {% endif %}
 
-    <form method="POST" action="/dashboard/refresh">
-        <input type="submit" value="🔄 Refresh Now">
-    </form>
+    <div class="top-buttons">
+        <form method="POST" action="/dashboard/refresh">
+            <input type="submit" value="🔄 Refresh Now">
+        </form>
+        <a href="/dashboard/add" class="button">➕ Add New Stream</a>
+        <a href="/dashboard/logs" class="button">📊 View Access Logs</a>
+    </div>
 
     <div class="meta">
         Last updated: {{ last_updated }}<br>
@@ -60,10 +88,5 @@
         </tr>
         {% endfor %}
     </table>
-
-    <p>
-        <a href="/dashboard/add">➕ Add New Stream</a> |
-        <a href="/dashboard/logs">📊 View Access Logs</a>
-    </p>
 </body>
 </html>
