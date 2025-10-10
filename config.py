@@ -1,2 +1,3 @@
 DB_PATH = 'streams.json'
-UPDATE_INTERVAL_HOURS = 6
+TIMESTAMP_PATH = 'last_update.txt'
+UPDATE_INTERVAL_HOURS = 5
