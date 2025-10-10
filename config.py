@@ -1,0 +1,2 @@
+DB_PATH = 'streams.db'
+UPDATE_INTERVAL_HOURS = 6
