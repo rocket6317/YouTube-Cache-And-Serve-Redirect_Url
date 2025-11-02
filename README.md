@@ -92,10 +92,6 @@ To run locally:
 pip install -r requirements.txt
 python app.py
 
-
-[![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/M4M31NTEGN)
-
-
 📄 License
 
 MIT License — free to use, modify, and distribute.
