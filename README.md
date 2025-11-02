@@ -2,6 +2,8 @@
 
 A lightweight Flask-based dashboard that caches YouTube livestream URLs (M3U8) and serves them via redirect links. Built for simplicity, speed, and self-hosting — ideal for embedding or sharing stable stream links.
 
+[![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/M4M31NTEGN)
+
 ---
 
 ## 🚀 Features
@@ -90,6 +92,10 @@ To run locally:
 pip install -r requirements.txt
 python app.py
 
+
+[![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/M4M31NTEGN)
+
+
 📄 License
 
 MIT License — free to use, modify, and distribute.
@@ -103,3 +109,4 @@ Built with ❤️ using:
 •  yt-dlp
 •  TinyDB
 •  APScheduler
+
