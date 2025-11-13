@@ -8,10 +8,8 @@ services:
       - "6095:6095"
     restart: unless-stopped
     environment:
-      # Ensures yt-dlp uses Node.js for EJS
       - YTDLP_EXTERNAL_JS=1
     volumes:
-      # Mount local project files into the container
       - ./channels.txt:/app/channels.txt
       - ./db.json:/app/db.json
       - ./timestamps.txt:/app/timestamps.txt
