@@ -44,16 +44,19 @@ def dashboard():
     try:
         with open(TIMESTAMP_PATH, 'r') as f:
             last_updated = datetime.fromisoformat(f.read().strip())
-    except:
+    except Exception:
         last_updated = None
 
     next_update = last_updated + timedelta(hours=UPDATE_INTERVAL_HOURS) if last_updated else None
     message = request.args.get('message')
 
-    return render_template('dashboard.html', streams=streams,
-                           last_updated=last_updated.strftime('%Y-%m-%d %H:%M UTC') if last_updated else 'Unknown',
-                           next_update=next_update.strftime('%Y-%m-%d %H:%M UTC') if next_update else 'Unknown',
-                           message=message)
+    return render_template(
+        'dashboard.html',
+        streams=streams,
+        last_updated=last_updated.strftime('%Y-%m-%d %H:%M:%S UTC') if last_updated else 'Unknown',
+        next_update=next_update.strftime('%Y-%m-%d %H:%M:%S UTC') if next_update else 'Unknown',
+        message=message
+    )
 
 @app.route('/dashboard/add', methods=['GET', 'POST'])
 def add_stream():
