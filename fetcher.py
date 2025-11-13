@@ -8,13 +8,15 @@ from datetime import datetime
 logger = logging.getLogger(__name__)
 
 def fetch_m3u8(url):
-ydl_opts = {
-    'quiet': True,
-    'skip_download': True,
-    'force_generic_extractor': False,
-    'format': 'bestvideo+bestaudio/best',
-    'extractor_args': {'youtube': ['player_client=web', 'use_nodejs=true']}
-}
+    ydl_opts = {
+        'quiet': True,
+        'skip_download': True,
+        'force_generic_extractor': False,
+        # Always pick best video+audio combo (HD/4K if available)
+        'format': 'bestvideo+bestaudio/best',
+        # Explicitly tell yt-dlp to use Node.js
+        'extractor_args': {'youtube': ['player_client=web', 'use_nodejs=true']}
+    }
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
         info = ydl.extract_info(url, download=False)
         return info.get('url')
