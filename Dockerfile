@@ -2,9 +2,9 @@ FROM python:3.13
 
 WORKDIR /app
 
-# Install Node.js and npm from Debian repos (simpler, avoids NodeSource script issues)
+# Install Node.js and npm from Debian repos
 RUN apt-get update && apt-get install -y nodejs npm \
-    && ln -sf /usr/bin/node /usr/bin/nodejs \
+    && ln -s /usr/bin/nodejs /usr/bin/node \
     && rm -rf /var/lib/apt/lists/*
 
 # Environment variable to tell yt-dlp to use external JS runtime
