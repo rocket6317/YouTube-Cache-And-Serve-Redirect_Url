@@ -12,7 +12,10 @@ def fetch_m3u8(url):
         'quiet': True,
         'skip_download': True,
         'force_generic_extractor': False,
-        'format': 'best',
+        # Always pick best video+audio combo (HD/4K if available)
+        'format': 'bestvideo+bestaudio/best',
+        # Force yt-dlp to use Node.js for adaptive formats
+        'extractor_args': {'youtube': ['player_client=web']}
     }
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
         info = ydl.extract_info(url, download=False)
