@@ -13,7 +13,6 @@ def fetch_m3u8(url):
         'skip_download': True,
         'force_generic_extractor': False,
         'format': 'bestvideo+bestaudio/best',
-        # Explicitly enable Node.js for EJS
         'extractor_args': {
             'youtube': ['ejs=enable', 'player_client=web']
         }
