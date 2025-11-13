@@ -4,6 +4,7 @@ WORKDIR /app
 
 # Install Node.js + npm for yt-dlp JavaScript runtime
 RUN apt-get update && apt-get install -y nodejs npm \
+    && ln -s /usr/bin/nodejs /usr/bin/node \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy project files
