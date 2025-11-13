@@ -10,7 +10,6 @@ import logging
 logging.basicConfig(level=logging.INFO, format='[%(asctime)s] [%(levelname)s] %(message)s')
 logger = logging.getLogger(__name__)
 
-# Optional: Filter to suppress non-essential logs
 class MinimalFilter(logging.Filter):
     def filter(self, record):
         return any(tag in record.msg for tag in ['[CACHE]', '[SERVE]', '[ADD]', '[DELETE]', '[REFRESH]'])
