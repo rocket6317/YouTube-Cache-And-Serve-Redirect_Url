@@ -2,7 +2,7 @@ FROM python:3.13
 
 WORKDIR /app
 
-# Install Node.js 20.x for yt-dlp and required system libs
+# Install Node.js 20.x for yt-dlp
 RUN apt-get update && apt-get install -y curl gnupg \
     && curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
     && apt-get install -y nodejs \
