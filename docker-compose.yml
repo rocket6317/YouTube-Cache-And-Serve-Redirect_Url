@@ -1,9 +1,9 @@
 version: "3.9"
 
 services:
-  yt-redirector:
+  youtube-redirector:
     build: .
-    container_name: yt-redirector
+    container_name: youtube-redirector
     ports:
       - "6095:6095"
     restart: unless-stopped
