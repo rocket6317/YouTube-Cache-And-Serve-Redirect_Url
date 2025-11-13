@@ -77,18 +77,4 @@
             <th>Redirect URL</th>
             <th>Action</th>
         </tr>
-        {% for stream in streams %}
-        <tr>
-            <td>{{ stream.name }}</td>
-            <td><a href="/stream?name={{ stream.name }}" target="_blank">{{ stream.m3u8 }}</a></td>
-            <td>
-                <form method="POST" action="/dashboard/delete" style="display:inline;">
-                    <input type="hidden" name="name" value="{{ stream.name }}">
-                    <input type="submit" value="Delete">
-                </form>
-            </td>
-        </tr>
-        {% endfor %}
-    </table>
-</body>
-</html>
+        {% for stream in streams
