@@ -12,7 +12,6 @@ def fetch_m3u8(url):
         'quiet': True,
         'skip_download': True,
         'force_generic_extractor': False,
-        # Always pick best video+audio combo (HD/4K if available)
         'format': 'bestvideo+bestaudio/best',
         # Explicitly enable Node.js for EJS
         'extractor_args': {
