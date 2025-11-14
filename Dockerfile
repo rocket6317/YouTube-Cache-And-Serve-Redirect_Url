@@ -2,19 +2,15 @@ FROM python:3.13-slim
 
 WORKDIR /app
 
-# Install system dependencies including Node.js and npm
+# Install system dependencies
 RUN apt-get update && apt-get install -y \
-    nodejs npm curl gnupg \
-    && ln -s /usr/bin/nodejs /usr/bin/node \
+    nodejs npm \
     && rm -rf /var/lib/apt/lists/*
 
-# Environment variable to tell yt-dlp to use external JS runtime
 ENV YTDLP_EXTERNAL_JS=1
 
-# Copy project files
 COPY . .
 
-# Install Python dependencies
 RUN pip install --no-cache-dir --upgrade pip \
     && pip install --no-cache-dir -r requirements.txt \
     && pip install --no-cache-dir --upgrade yt-dlp
