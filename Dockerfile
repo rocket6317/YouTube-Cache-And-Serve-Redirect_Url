@@ -1,9 +1,10 @@
-FROM python:3.13
+FROM python:3.13-slim
 
 WORKDIR /app
 
-# Install Node.js and npm from Debian repos
-RUN apt-get update && apt-get install -y nodejs npm \
+# Install system dependencies including Node.js and npm
+RUN apt-get update && apt-get install -y \
+    nodejs npm curl gnupg \
     && ln -s /usr/bin/nodejs /usr/bin/node \
     && rm -rf /var/lib/apt/lists/*
 
