@@ -8,17 +8,21 @@ Stream = Query()
 LOG_PATH = 'access_log.json'
 
 def init_db():
+    # Nothing special needed, TinyDB creates the file automatically
     pass
 
-def update_stream(name, url, m3u8):
-    db.upsert({'name': name, 'url': url, 'm3u8': m3u8}, Stream.name == name)
+def update_stream(name, title, url, m3u8):
+    db.upsert(
+        {'id': name, 'title': title, 'url': url, 'm3u8': m3u8},
+        Stream.id == name
+    )
 
 def get_stream(name):
-    result = db.search(Stream.name == name)
+    result = db.search(Stream.id == name)
     return result[0]['m3u8'] if result else None
 
 def delete_stream(name):
-    db.remove(Stream.name == name)
+    db.remove(Stream.id == name)
 
 def log_access(name, ip):
     try:
