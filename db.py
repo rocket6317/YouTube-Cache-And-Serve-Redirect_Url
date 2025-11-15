@@ -29,18 +29,18 @@ def delete_stream(name):
         del logs[name]
 
 def log_access(name, ip):
-    from datetime import datetime
     if name not in logs:
         logs[name] = []
+    now = datetime.utcnow()
     logs[name].append({
         "ip": ip,
-        "timestamp": datetime.utcnow().isoformat()
+        "timestamp": now.isoformat()
     })
-    # prune older than 7 days
-    cutoff = datetime.utcnow() - timedelta(days=7)
+    # prune older than 7 days (strictly less than cutoff)
+    cutoff = now - timedelta(days=7)
     logs[name] = [
         entry for entry in logs[name]
-        if datetime.fromisoformat(entry["timestamp"]) >= cutoff
+        if datetime.fromisoformat(entry["timestamp"]) > cutoff
     ]
 
 def get_access_log():
