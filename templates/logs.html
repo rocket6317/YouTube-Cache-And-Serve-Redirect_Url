@@ -13,32 +13,27 @@
 </head>
 <body>
     <h1>📊 Redirect Access Logs</h1>
-    {% for name, entries in access_data.items() %}
-        <h2>{{ name }} ({{ entries|length }} accesses)</h2>
-        {% set ip_map = {} %}
-        {% for entry in entries %}
-            {% set ip = entry.ip %}
-            {% if ip_map[ip] is defined %}
-                {% set ip_map = ip_map.update({ip: ip_map[ip] + [entry.timestamp]}) %}
-            {% else %}
-                {% set ip_map = ip_map.update({ip: [entry.timestamp]}) %}
-            {% endif %}
+
+    {% if access_data %}
+        {% for name, entries in access_data.items() %}
+            <h2>{{ name }} ({{ entries|length }} accesses)</h2>
+            <table>
+                <tr>
+                    <th>IP Address</th>
+                    <th>Timestamp</th>
+                </tr>
+                {% for entry in entries %}
+                <tr>
+                    <td>{{ entry.ip }}</td>
+                    <td>{{ entry.timestamp }}</td>
+                </tr>
+                {% endfor %}
+            </table>
         {% endfor %}
-        <table>
-            <tr>
-                <th>IP Address</th>
-                <th>Access Count</th>
-                <th>Most Recent Access</th>
-            </tr>
-            {% for ip, timestamps in ip_map.items() %}
-            <tr>
-                <td>{{ ip }}</td>
-                <td>{{ timestamps|length }}</td>
-                <td>{{ timestamps[-1] }}</td>
-            </tr>
-            {% endfor %}
-        </table>
-    {% endfor %}
+    {% else %}
+        <p>No access logs yet.</p>
+    {% endif %}
+
     <p><a href="/dashboard">← Back to Dashboard</a></p>
 </body>
 </html>
