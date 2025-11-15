@@ -27,8 +27,15 @@ def stream():
         return 'Missing name parameter', 400
     m3u8 = get_stream(name)
     if m3u8:
+        # Extract client IP (first in X-Forwarded-For) and proxy IP
+        xff = request.headers.get('X-Forwarded-For')
+        if xff:
+            client_ip = xff.split(',')[0].strip()
+        else:
+            client_ip = request.remote_addr
+
         proxy_ip = request.remote_addr
-        client_ip = request.headers.get('X-Forwarded-For', proxy_ip)
+
         log_access(name, client_ip, proxy_ip)
         logger.info(f"[SERVE] {name} served to client {client_ip} via proxy {proxy_ip}")
         return redirect(m3u8)
