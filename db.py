@@ -68,6 +68,7 @@ def log_access(name, client_ip, proxy_ip):
             "count": 1,
             "last_seen": now
         })
+    # pruning now handled by scheduler at midnight
 
 def get_access_log():
     grouped = {}
