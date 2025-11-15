@@ -2,9 +2,6 @@ from flask import Flask, redirect, request, render_template
 from db import init_db, get_stream, delete_stream, log_access, get_access_log
 from scheduler import start_scheduler
 from fetcher import process_channels
-from tinydb import TinyDB
-from config import DB_PATH, TIMESTAMP_PATH, UPDATE_INTERVAL_HOURS
-from datetime import datetime, timedelta
 import logging
 
 logging.basicConfig(level=logging.INFO, format='[%(asctime)s] [%(levelname)s] %(message)s')
@@ -37,23 +34,14 @@ def stream():
 
 @app.route('/dashboard')
 def dashboard():
-    db = TinyDB(DB_PATH)
-    streams = db.all()
-
-    try:
-        with open(TIMESTAMP_PATH, 'r') as f:
-            last_updated = datetime.fromisoformat(f.read().strip())
-    except Exception:
-        last_updated = None
-
-    next_update = last_updated + timedelta(hours=UPDATE_INTERVAL_HOURS) if last_updated else None
+    # In ephemeral mode, streams are in memory only
+    from db import streams
     message = request.args.get('message')
-
     return render_template(
         'dashboard.html',
-        streams=streams,
-        last_updated=last_updated.strftime('%Y-%m-%d %H:%M:%S UTC') if last_updated else 'Unknown',
-        next_update=next_update.strftime('%Y-%m-%d %H:%M:%S UTC') if next_update else 'Unknown',
+        streams=streams.values(),
+        last_updated="Unknown (ephemeral mode)",
+        next_update="Unknown (ephemeral mode)",
         message=message
     )
 
