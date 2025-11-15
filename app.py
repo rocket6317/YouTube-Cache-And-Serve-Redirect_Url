@@ -1,11 +1,10 @@
 from flask import Flask, request, redirect, render_template
-from db import init_db, get_stream, log_access, get_access_log, delete_stream
-from fetcher import process_channels
+from db import init_db, get_stream, log_access, get_access_log, delete_stream, streams_table, update_stream
+from fetcher import process_channels, fetch_info, extract_name
 from scheduler import start_scheduler
 
 app = Flask(__name__)
 
-# ✅ Initialize DB and fetch streams immediately
 init_db()
 process_channels()
 start_scheduler()
@@ -26,13 +25,11 @@ def stream():
 
 @app.route("/dashboard")
 def dashboard():
-    from db import streams
-    return render_template("dashboard.html", streams=streams)
+    return render_template("dashboard.html", streams=streams_table())
 
 @app.route("/logs")
 def logs():
-    logs = get_access_log()
-    return render_template("logs.html", logs=logs)
+    return render_template("logs.html", logs=get_access_log())
 
 @app.route("/dashboard/delete", methods=["POST"])
 def delete():
@@ -49,13 +46,11 @@ def refresh():
 def add():
     if request.method == "POST":
         url = request.form.get("url")
-        from fetcher import fetch_info, extract_name
         name = extract_name(url)
         try:
             info = fetch_info(url)
             m3u8 = info.get("url")
             channel_name = info.get("channel") or info.get("uploader") or name
-            from db import update_stream
             update_stream(name, url, m3u8, channel_name)
         except Exception:
             pass
