@@ -5,11 +5,13 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
-    <h1>📊 Redirect Access Logs (last 7 days)</h1>
+    <h1>📊 Redirect Access Logs (last 7 days, ephemeral)</h1>
 
     {% if access_data %}
         {% for name, entries in access_data.items() %}
-            <h2>{{ name }} ({{ entries|length }} accesses in last 7 days)</h2>
+            <h2>{{ streams[name].display_name if name in streams else name }} 
+                ({{ entries|length }} accesses in last 7 days)
+            </h2>
             <table>
                 <tr>
                     <th>IP Address</th>
@@ -28,5 +30,6 @@
     {% endif %}
 
     <p><a href="/dashboard" class="back-link">← Back to Dashboard</a></p>
+    <em>⚠️ Logs reset each time the container restarts — only last 7 days kept.</em>
 </body>
 </html>
