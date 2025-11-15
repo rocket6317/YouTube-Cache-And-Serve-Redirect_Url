@@ -6,22 +6,27 @@
 </head>
 <body>
     <h1>Access Logs</h1>
-    <a href="/dashboard">← Back to Dashboard</a>
+    <p><a href="/dashboard">← Back to Dashboard</a></p>
+
     {% for channel, ips in logs.items() %}
         <h2>{{ channel }}</h2>
         <table>
-            <tr>
-                <th>IP Address</th>
-                <th>Count</th>
-                <th>Last Seen</th>
-            </tr>
-            {% for ip, data in ips.items() %}
-            <tr>
-                <td>{{ ip }}</td>
-                <td>{{ data.count }}</td>
-                <td>{{ data.last_seen }}</td>
-            </tr>
-            {% endfor %}
+            <thead>
+                <tr>
+                    <th>IP Address</th>
+                    <th>Count</th>
+                    <th>Last Seen</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for ip, data in ips.items() %}
+                <tr>
+                    <td>{{ ip }}</td>
+                    <td>{{ data.count }}</td>
+                    <td>{{ data.last_seen }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
         </table>
     {% endfor %}
 </body>
