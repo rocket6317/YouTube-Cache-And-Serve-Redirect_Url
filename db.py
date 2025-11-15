@@ -7,7 +7,7 @@ import os
 import json
 import logging
 
-# Safe startup check: create db.json if missing or empty
+# Safe startup check
 if not os.path.exists(DB_PATH) or os.stat(DB_PATH).st_size == 0:
     with open(DB_PATH, 'w') as f:
         json.dump({}, f)
