@@ -1,12 +1,10 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 from tinydb import TinyDB, Query
 from config import DB_PATH
 
-# Streams still in memory (ephemeral)
 streams = {}
 last_updated = None
 
-# TinyDB for logs (persistent across workers)
 db = TinyDB(DB_PATH)
 logs_table = db.table("logs")
 
@@ -14,8 +12,7 @@ def init_db():
     global streams, last_updated
     streams = {}
     last_updated = None
-    # clear logs older than 7 days if needed
-    # (optional pruning logic can be added here)
+    prune_old_logs()  # clean up on startup
 
 def update_stream(name, url, m3u8, display_name=None):
     streams[name] = {
@@ -49,9 +46,9 @@ def log_access(name, ip):
             "count": 1,
             "last_seen": now
         })
+    prune_old_logs()  # prune after each insert
 
 def get_access_log():
-    # Group logs by channel
     grouped = {}
     for entry in logs_table.all():
         channel = entry["channel"]
@@ -63,10 +60,22 @@ def get_access_log():
         }
     return grouped
 
-# Timestamp helpers
 def set_last_updated():
     global last_updated
     last_updated = datetime.utcnow()
 
 def get_last_updated():
     return last_updated
+
+def prune_old_logs():
+    """Remove log entries older than 7 days."""
+    cutoff = datetime.utcnow() - timedelta(days=7)
+    Log = Query()
+    for entry in logs_table.all():
+        try:
+            ts = datetime.fromisoformat(entry["last_seen"])
+            if ts < cutoff:
+                logs_table.remove(doc_ids=[entry.doc_id])
+        except Exception:
+            # If timestamp parsing fails, drop the entry
+            logs_table.remove(doc_ids=[entry.doc_id])
