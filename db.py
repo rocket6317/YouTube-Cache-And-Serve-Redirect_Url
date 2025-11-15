@@ -84,12 +84,18 @@ def get_access_log():
     return grouped
 
 def get_last_updated():
-    meta = meta_table.get(doc_id=1)
+    Meta = Query()
+    meta = meta_table.get(Meta.type == "meta")
     if meta and "last_updated" in meta:
         return datetime.fromisoformat(meta["last_updated"])
     return None
 
 def set_last_updated():
-    meta_table.upsert({
-        "last_updated": datetime.utcnow().isoformat(timespec="seconds")
-    }, doc_ids=[1])
+    Meta = Query()
+    meta_table.upsert(
+        {
+            "type": "meta",
+            "last_updated": datetime.utcnow().isoformat(timespec="seconds")
+        },
+        Meta.type == "meta"
+    )
