@@ -1,7 +1,9 @@
 from flask import Flask, redirect, request, render_template
-from db import init_db, get_stream, delete_stream, log_access, get_access_log
+from db import init_db, get_stream, delete_stream, log_access, get_access_log, get_last_updated
 from scheduler import start_scheduler
 from fetcher import process_channels
+from config import UPDATE_INTERVAL_HOURS
+from datetime import timedelta
 import logging
 
 logging.basicConfig(level=logging.INFO, format='[%(asctime)s] [%(levelname)s] %(message)s')
@@ -34,14 +36,17 @@ def stream():
 
 @app.route('/dashboard')
 def dashboard():
-    # In ephemeral mode, streams are in memory only
     from db import streams
     message = request.args.get('message')
+
+    last_updated = get_last_updated()
+    next_update = (last_updated + timedelta(hours=UPDATE_INTERVAL_HOURS)) if last_updated else None
+
     return render_template(
         'dashboard.html',
         streams=streams.values(),
-        last_updated="Unknown (ephemeral mode)",
-        next_update="Unknown (ephemeral mode)",
+        last_updated=last_updated.strftime('%Y-%m-%d %H:%M:%S UTC') if last_updated else 'Unknown',
+        next_update=next_update.strftime('%Y-%m-%d %H:%M:%S UTC') if next_update else 'Unknown',
         message=message
     )
 
