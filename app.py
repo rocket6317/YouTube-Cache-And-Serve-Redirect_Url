@@ -80,4 +80,5 @@ def refresh():
 @app.route('/dashboard/logs')
 def logs():
     access_data = get_access_log()
-    return render_template('logs.html', access_data=access_data)
+    from db import streams
+    return render_template('logs.html', access_data=access_data, streams=streams)
