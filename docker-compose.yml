@@ -9,8 +9,3 @@ services:
     restart: unless-stopped
     environment:
       - YTDLP_EXTERNAL_JS=1
-    volumes:
-      - youtube_data:/app/data
-
-volumes:
-  youtube_data:
