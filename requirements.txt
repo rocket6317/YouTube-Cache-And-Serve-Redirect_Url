@@ -1,5 +1,5 @@
-Flask
-yt-dlp
-apscheduler
-gunicorn
-tinydb
+Flask==3.0.3
+tinydb==4.8.0
+gunicorn==23.0.0
+yt-dlp==2025.11.12
+APScheduler==3.10.4
