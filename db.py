@@ -1,6 +1,6 @@
 import json
 import os
-from datetime import datetime
+from datetime import datetime, timedelta
 
 DB_PATH = "db.json"
 
@@ -56,3 +56,12 @@ def get_access_log():
 
 def streams_table():
     return load_db().get("streams", {})
+
+def prune_old_logs(days=7):
+    db = load_db()
+    cutoff = datetime.utcnow() - timedelta(days=days)
+    db["access_log"] = [
+        log for log in db.get("access_log", [])
+        if datetime.fromisoformat(log["timestamp"]) > cutoff
+    ]
+    save_db(db)
