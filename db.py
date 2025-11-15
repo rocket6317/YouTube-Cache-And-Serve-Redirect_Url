@@ -3,11 +3,13 @@ from datetime import datetime, timedelta
 # In-memory stores (reset on restart)
 streams = {}
 logs = {}
+last_updated = None  # track last refresh time
 
 def init_db():
-    global streams, logs
+    global streams, logs, last_updated
     streams = {}
     logs = {}
+    last_updated = None
 
 def update_stream(name, url, m3u8, display_name=None):
     streams[name] = {
@@ -27,6 +29,7 @@ def delete_stream(name):
         del logs[name]
 
 def log_access(name, ip):
+    from datetime import datetime
     if name not in logs:
         logs[name] = []
     logs[name].append({
@@ -42,3 +45,11 @@ def log_access(name, ip):
 
 def get_access_log():
     return logs
+
+# Timestamp helpers
+def set_last_updated():
+    global last_updated
+    last_updated = datetime.utcnow()
+
+def get_last_updated():
+    return last_updated
