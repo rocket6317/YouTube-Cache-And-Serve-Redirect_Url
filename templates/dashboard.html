@@ -84,4 +84,15 @@
             <td>
                 <form method="POST" action="/dashboard/delete" style="display:inline">
                     <input type="hidden" name="name" value="{{ stream.name }}">
-                    <input type="submit" value
+                    <input type="submit" value="🗑️ Delete">
+                </form>
+            </td>
+        </tr>
+        {% endfor %}
+    </table>
+
+    {% if not streams %}
+        <p>No streams cached yet.</p>
+    {% endif %}
+</body>
+</html>
