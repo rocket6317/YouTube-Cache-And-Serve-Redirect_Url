@@ -2,14 +2,7 @@
 <html>
 <head>
     <title>Access Logs</title>
-    <style>
-        body { font-family: sans-serif; padding: 20px; }
-        h1 { margin-bottom: 10px; }
-        h2 { margin-top: 30px; }
-        table { border-collapse: collapse; width: 100%; margin-top: 10px; }
-        th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
-        th { background-color: #f2f2f2; }
-    </style>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
     <h1>📊 Redirect Access Logs</h1>
@@ -34,6 +27,6 @@
         <p>No access logs yet.</p>
     {% endif %}
 
-    <p><a href="/dashboard">← Back to Dashboard</a></p>
+    <p><a href="/dashboard" class="back-link">← Back to Dashboard</a></p>
 </body>
 </html>
