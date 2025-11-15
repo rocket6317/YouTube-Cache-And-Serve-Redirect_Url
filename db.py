@@ -1,75 +1,43 @@
 from datetime import datetime, timedelta
 from tinydb import TinyDB, Query
-import os, json
-from config import DB_PATH
+from tinydb.storages import JSONStorage
+from tinydb.middlewares import CachingMiddleware
 
-# Streams are ephemeral (reset on restart)
-streams = {}
-last_updated = None
-
-# --- Safe TinyDB initialization ---
-def safe_open_db(path):
-    # If file exists but is empty or invalid, reset it
-    if os.path.exists(path):
-        try:
-            with open(path, "r") as f:
-                content = f.read().strip()
-                if not content:
-                    raise ValueError("Empty file")
-                json.loads(content)  # validate JSON
-        except Exception:
-            # Reset file to empty JSON object
-            with open(path, "w") as f:
-                f.write("{}")
-    return TinyDB(path)
-
-db = safe_open_db(DB_PATH)
+db = TinyDB("db.json", storage=CachingMiddleware(JSONStorage))
+streams_table = db.table("streams")
 logs_table = db.table("logs")
 
-# --- Streams management ---
-def init_db():
-    global streams, last_updated
-    streams = {}
-    last_updated = None
-    prune_old_logs()  # clean up old logs on startup
+streams = {}
 
-def update_stream(name, url, m3u8, display_name=None):
-    streams[name] = {
-        "name": name,
-        "url": url,
-        "m3u8": m3u8,
-        "display_name": display_name or name
-    }
+def init_db():
+    global streams
+    streams = {entry["name"]: entry for entry in streams_table.all()}
 
 def get_stream(name):
-    return streams[name]["m3u8"] if name in streams else None
+    return streams.get(name, {}).get("url")
 
 def delete_stream(name):
-    if name in streams:
-        del streams[name]
-    logs_table.remove(Query().channel == name)
+    global streams
+    Stream = Query()
+    streams_table.remove(Stream.name == name)
+    streams.pop(name, None)
 
-# --- Logging ---
-def log_access(name, client_ip, proxy_ip):
+def log_access(name, ip):
     now = datetime.utcnow().isoformat(timespec="seconds")
     Log = Query()
-    existing = logs_table.get((Log.channel == name) & (Log.client_ip == client_ip))
+    existing = logs_table.get((Log.channel == name) & (Log.ip == ip))
     if existing:
         logs_table.update({
             "count": existing["count"] + 1,
-            "last_seen": now,
-            "proxy_ip": proxy_ip
+            "last_seen": now
         }, doc_ids=[existing.doc_id])
     else:
         logs_table.insert({
             "channel": name,
-            "client_ip": client_ip,
-            "proxy_ip": proxy_ip,
+            "ip": ip,
             "count": 1,
             "last_seen": now
         })
-    # ❌ prune_old_logs() removed here
-    # pruning handled by scheduler at midnight
 
 def get_access_log():
     grouped = {}
@@ -83,22 +51,11 @@ def get_access_log():
         }
     return grouped
 
-# --- Timestamp helpers ---
-def set_last_updated():
-    global last_updated
-    last_updated = datetime.utcnow()
-
 def get_last_updated():
-    return last_updated
+    meta = db.table("meta").get(doc_id=1)
+    if meta and "last_updated" in meta:
+        return datetime.fromisoformat(meta["last_updated"])
+    return None
 
-# --- Pruning ---
-def prune_old_logs():
-    """Remove log entries older than 7 days."""
-    cutoff = datetime.utcnow() - timedelta(days=7)
-    for entry in logs_table.all():
-        try:
-            ts = datetime.fromisoformat(entry["last_seen"])
-            if ts < cutoff:
-                logs_table.remove(doc_ids=[entry.doc_id])
-        except Exception:
-            logs_table.remove(doc_ids=[entry.doc_id])
+def set_last_updated():
+    db.table("meta").upsert({"last_updated": datetime.utcnow().isoformat(timespec="seconds")}, doc_ids=[1])
