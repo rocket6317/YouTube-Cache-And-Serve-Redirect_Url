@@ -3,16 +3,30 @@ from tinydb import TinyDB, Query
 from tinydb.storages import JSONStorage
 from tinydb.middlewares import CachingMiddleware
 from config import DB_PATH
+import os
+import json
+import logging
 
+# Safe startup check: create db.json if missing, but never overwrite it
+if not os.path.exists(DB_PATH):
+    with open(DB_PATH, 'w') as f:
+        json.dump({}, f)
+
+# Initialize TinyDB
 db = TinyDB(DB_PATH, storage=CachingMiddleware(JSONStorage))
 streams_table = db.table("streams")
 logs_table = db.table("logs")
 
+# In-memory cache of streams
 streams = {}
 
 def init_db():
     global streams
-    streams = {entry["name"]: entry for entry in streams_table.all()}
+    try:
+        streams = {entry["name"]: entry for entry in streams_table.all()}
+    except Exception as e:
+        logging.warning(f"[DB INIT] Failed to load streams: {e}")
+        streams = {}
 
 def get_stream(name):
     return streams.get(name, {}).get("url")
