@@ -2,39 +2,27 @@
 <html>
 <head>
     <title>Access Logs</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
-    <h1>📊 Redirect Access Logs (grouped by channel & IP)</h1>
-
-    {% if access_data %}
-        {% for name, ip_data in access_data.items() %}
-            <h2>
-                {{ streams[name].display_name if name in streams else name }}
-                — Total accesses: {{ ip_data.values()|map(attribute='count')|sum }},
-                Unique IPs: {{ ip_data|length }}
-            </h2>
-            <table>
-                <tr>
-                    <th>IP Address</th>
-                    <th>Access Count</th>
-                    <th>Last Seen (UTC)</th>
-                </tr>
-                {% for ip, entry in ip_data.items() %}
-                <tr>
-                    <td>{{ ip }}</td>
-                    <td>{{ entry.count }}</td>
-                    <td>{{ entry.last_seen }}</td>
-                </tr>
-                {% endfor %}
-            </table>
-            <hr>
-        {% endfor %}
-    {% else %}
-        <p>No access logs yet.</p>
-    {% endif %}
-
-    <p><a href="/dashboard" class="back-link">← Back to Dashboard</a></p>
-    <em>⚠️ Logs are stored in TinyDB and persist across workers.</em>
+    <h1>Access Logs</h1>
+    <a href="/dashboard">← Back to Dashboard</a>
+    {% for channel, ips in logs.items() %}
+        <h2>{{ channel }}</h2>
+        <table>
+            <tr>
+                <th>IP Address</th>
+                <th>Count</th>
+                <th>Last Seen</th>
+            </tr>
+            {% for ip, data in ips.items() %}
+            <tr>
+                <td>{{ ip }}</td>
+                <td>{{ data.count }}</td>
+                <td>{{ data.last_seen }}</td>
+            </tr>
+            {% endfor %}
+        </table>
+    {% endfor %}
 </body>
 </html>
