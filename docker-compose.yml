@@ -10,11 +10,7 @@ services:
     environment:
       - YTDLP_EXTERNAL_JS=1
     volumes:
-      # Persist TinyDB database and timestamp file
-      - youtube_data:/app/streams.json
-      - youtube_data:/app/last_update.txt
-      # Optional: persist access logs
-      - youtube_data:/app/access_log.json
+      - youtube_data:/app/data
 
 volumes:
   youtube_data:
