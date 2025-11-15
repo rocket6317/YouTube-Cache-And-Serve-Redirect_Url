@@ -37,8 +37,8 @@ def process_channels(file_path='channels.txt'):
                 try:
                     info = fetch_info(url)
                     m3u8 = info.get('url')
-                    title = info.get('title', name)  # fallback to internal name
-                    update_stream(name, url, m3u8, title)
-                    logger.info(f"[CACHE] {title} updated")
+                    channel_name = info.get('channel') or info.get('uploader') or name
+                    update_stream(name, url, m3u8, channel_name)
+                    logger.info(f"[CACHE] {channel_name} updated")
                 except Exception as e:
                     logger.warning(f"[ERROR] Failed to cache {name}: {e}")
