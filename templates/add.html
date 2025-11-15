@@ -2,36 +2,7 @@
 <html>
 <head>
     <title>Add Stream</title>
-    <style>
-        body { font-family: sans-serif; padding: 20px; }
-        h1 { margin-bottom: 10px; }
-        form { margin-top: 20px; }
-        label { font-weight: bold; }
-        input[type="text"] {
-            width: 100%;
-            padding: 8px;
-            margin: 8px 0;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-        }
-        input[type="submit"] {
-            padding: 8px 16px;
-            background-color: #28a745;
-            color: white;
-            border: none;
-            cursor: pointer;
-            border-radius: 4px;
-        }
-        input[type="submit"]:hover {
-            background-color: #218838;
-        }
-        .back-link {
-            margin-top: 15px;
-            display: inline-block;
-            text-decoration: none;
-            color: #007bff;
-        }
-    </style>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
     <h1>➕ Add YouTube Stream</h1>
