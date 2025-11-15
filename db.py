@@ -32,7 +32,6 @@ def log_access(name, ip):
     if name not in logs:
         logs[name] = {}
     now = datetime.utcnow().isoformat(timespec="seconds")
-
     if ip not in logs[name]:
         logs[name][ip] = {"count": 0, "last_seen": now}
     logs[name][ip]["count"] += 1
