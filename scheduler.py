@@ -7,7 +7,7 @@ scheduler = BackgroundScheduler()
 
 def start_scheduler():
     scheduler.add_job(refresh_streams, 'interval', hours=UPDATE_INTERVAL_HOURS)
-    scheduler.add_job(prune_logs, 'cron', hour=0, minute=0)  # Midnight UTC
+    scheduler.add_job(prune_logs, 'cron', hour=0, minute=0)
     scheduler.start()
 
 def refresh_streams():
