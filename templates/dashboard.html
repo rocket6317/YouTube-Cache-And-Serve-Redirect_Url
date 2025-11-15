@@ -2,53 +2,36 @@
 <html>
 <head>
     <title>Stream Dashboard</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
-    <h1>📺 Cached Streams (Ephemeral)</h1>
-
-    {% if message %}
-        <div class="message">{{ message }}</div>
-    {% endif %}
-
-    <div class="top-buttons">
-        <form method="POST" action="/dashboard/refresh">
-            <input type="submit" value="🔄 Refresh Now">
-        </form>
-        <a href="/dashboard/add" class="button">➕ Add New Stream</a>
-        <a href="/dashboard/logs" class="button">📊 View Access Logs</a>
-    </div>
-
-    <div class="meta">
-        <strong>Last updated:</strong> {{ last_updated }}<br>
-        <strong>Next update:</strong> {{ next_update }}<br>
-        <em>⚠️ Streams reset each time the container restarts — fresh start mode.</em>
-    </div>
-
+    <h1>Stream Dashboard</h1>
+    <form action="/dashboard/refresh" method="post">
+        <button type="submit">Refresh Streams</button>
+    </form>
+    <form action="/dashboard/add" method="get">
+        <button type="submit">Add Stream</button>
+    </form>
     <table>
         <tr>
-            <th>Channel</th>
-            <th>Redirect Link</th>
-            <th>Stream Link</th>
-            <th>Action</th>
+            <th>Name</th>
+            <th>Display Name</th>
+            <th>Actions</th>
         </tr>
-        {% for stream in streams %}
+        {% for name, stream in streams.items() %}
         <tr>
+            <td>{{ name }}</td>
             <td>{{ stream.display_name }}</td>
-            <td><a href="/stream?name={{ stream.name }}" target="_blank">Redirect Link</a></td>
-            <td><a href="{{ stream.url }}" target="_blank">Stream Link</a></td>
             <td>
-                <form method="POST" action="/dashboard/delete" style="display:inline">
-                    <input type="hidden" name="name" value="{{ stream.name }}">
-                    <input type="submit" value="🗑️ Delete">
+                <a href="/stream?name={{ name }}" target="_blank">Open</a>
+                <form action="/dashboard/delete" method="post" style="display:inline;">
+                    <input type="hidden" name="name" value="{{ name }}">
+                    <button type="submit">Delete</button>
                 </form>
             </td>
         </tr>
         {% endfor %}
     </table>
-
-    {% if not streams %}
-        <p>No streams cached yet. Add one above or wait for the scheduler to fetch.</p>
-    {% endif %}
+    <a href="/logs">View Access Logs</a>
 </body>
 </html>
