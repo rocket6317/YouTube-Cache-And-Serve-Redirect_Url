@@ -2,60 +2,13 @@
 <html>
 <head>
     <title>Stream Dashboard</title>
-    <style>
-        body { font-family: sans-serif; padding: 20px; }
-        .top-buttons {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 10px;
-        }
-        .top-buttons form,
-        .top-buttons a {
-            display: inline-block;
-        }
-        .top-buttons input[type="submit"],
-        .top-buttons a.button {
-            font-size: 14px;
-            padding: 6px 12px;
-            background-color: #007bff;
-            color: white;
-            border: none;
-            text-decoration: none;
-            cursor: pointer;
-            border-radius: 4px;
-        }
-        table {
-            border-collapse: collapse;
-            width: 100%;
-            margin-top: 10px;
-            table-layout: auto;
-        }
-        th, td {
-            border: 1px solid #ccc;
-            padding: 8px;
-            text-align: left;
-        }
-        th {
-            background-color: #f2f2f2;
-        }
-        td:nth-child(2) {
-            font-size: 0.85em;
-            word-break: break-word;
-        }
-        .meta {
-            margin-top: 10px;
-            font-size: 0.9em;
-            color: #555;
-        }
-    </style>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
     <h1>📺 Cached Streams</h1>
 
     {% if message %}
-        <div style="padding: 10px; background-color: #e0ffe0; border: 1px solid #b2d8b2; margin-bottom: 10px;">
-            {{ message }}
-        </div>
+        <div class="message">{{ message }}</div>
     {% endif %}
 
     <div class="top-buttons">
