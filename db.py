@@ -68,7 +68,6 @@ def log_access(name, client_ip, proxy_ip):
             "count": 1,
             "last_seen": now
         })
-    prune_old_logs()
 
 def get_access_log():
     grouped = {}
