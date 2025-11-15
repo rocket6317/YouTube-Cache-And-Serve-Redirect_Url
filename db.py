@@ -101,5 +101,4 @@ def prune_old_logs():
             if ts < cutoff:
                 logs_table.remove(doc_ids=[entry.doc_id])
         except Exception:
-            # If timestamp parsing fails, drop the entry
             logs_table.remove(doc_ids=[entry.doc_id])
