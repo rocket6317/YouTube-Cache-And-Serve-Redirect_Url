@@ -2,7 +2,6 @@ import yt_dlp
 import logging
 from db import update_stream
 from urllib.parse import urlparse, parse_qs
-from datetime import datetime
 
 logger = logging.getLogger(__name__)
 
@@ -41,4 +40,3 @@ def process_channels(file_path='channels.txt'):
                     logger.info(f"[CACHE] {name} updated")
                 except Exception as e:
                     logger.warning(f"[ERROR] Failed to cache {name}: {e}")
-    # No timestamp file written — ephemeral mode
