@@ -22,6 +22,9 @@ RUN pip install --no-cache-dir --upgrade pip \
     && pip install --no-cache-dir -r requirements.txt \
     && pip install --no-cache-dir --upgrade yt-dlp
 
+# Ensure Gunicorn runs with multiple workers for production
+ENV GUNICORN_CMD_ARGS="--workers=3 --threads=2 --timeout=120"
+
 EXPOSE 6095
 
 CMD ["gunicorn", "--bind", "0.0.0.0:6095", "app:app"]
