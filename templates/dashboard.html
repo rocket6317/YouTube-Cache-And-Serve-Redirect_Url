@@ -6,32 +6,40 @@
 </head>
 <body>
     <h1>Stream Dashboard</h1>
+
     <form action="/dashboard/refresh" method="post">
-        <button type="submit">Refresh Streams</button>
+        <button type="submit">🔄 Refresh Streams</button>
     </form>
+
     <form action="/dashboard/add" method="get">
-        <button type="submit">Add Stream</button>
+        <button type="submit">➕ Add Stream</button>
     </form>
+
     <table>
-        <tr>
-            <th>Name</th>
-            <th>Display Name</th>
-            <th>Actions</th>
-        </tr>
-        {% for name, stream in streams.items() %}
-        <tr>
-            <td>{{ name }}</td>
-            <td>{{ stream.display_name }}</td>
-            <td>
-                <a href="/stream?name={{ name }}" target="_blank">Open</a>
-                <form action="/dashboard/delete" method="post" style="display:inline;">
-                    <input type="hidden" name="name" value="{{ name }}">
-                    <button type="submit">Delete</button>
-                </form>
-            </td>
-        </tr>
-        {% endfor %}
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Display Name</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for name, stream in streams.items() %}
+            <tr>
+                <td>{{ name }}</td>
+                <td>{{ stream.display_name }}</td>
+                <td>
+                    <a href="/stream?name={{ name }}" target="_blank">▶️ Open</a>
+                    <form action="/dashboard/delete" method="post" style="display:inline;">
+                        <input type="hidden" name="name" value="{{ name }}">
+                        <button type="submit">🗑️ Delete</button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
     </table>
-    <a href="/logs">View Access Logs</a>
+
+    <p><a href="/logs">📊 View Access Logs</a></p>
 </body>
 </html>
