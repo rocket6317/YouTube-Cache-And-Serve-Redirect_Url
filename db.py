@@ -9,8 +9,13 @@ def init_db():
     streams = {}
     logs = {}
 
-def update_stream(name, url, m3u8):
-    streams[name] = {"url": url, "m3u8": m3u8}
+def update_stream(name, url, m3u8, display_name=None):
+    streams[name] = {
+        "name": name,
+        "url": url,
+        "m3u8": m3u8,
+        "display_name": display_name or name
+    }
 
 def get_stream(name):
     return streams[name]["m3u8"] if name in streams else None
