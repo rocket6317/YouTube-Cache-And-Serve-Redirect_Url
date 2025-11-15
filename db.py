@@ -1,28 +1,24 @@
 from tinydb import TinyDB, Query
 from config import DB_PATH
 import json
-from datetime import datetime
+from datetime import datetime, timedelta
 
 db = TinyDB(DB_PATH)
 Stream = Query()
 LOG_PATH = 'access_log.json'
 
 def init_db():
-    # Nothing special needed, TinyDB creates the file automatically
     pass
 
-def update_stream(name, title, url, m3u8):
-    db.upsert(
-        {'id': name, 'title': title, 'url': url, 'm3u8': m3u8},
-        Stream.id == name
-    )
+def update_stream(name, url, m3u8):
+    db.upsert({'name': name, 'url': url, 'm3u8': m3u8}, Stream.name == name)
 
 def get_stream(name):
-    result = db.search(Stream.id == name)
+    result = db.search(Stream.name == name)
     return result[0]['m3u8'] if result else None
 
 def delete_stream(name):
-    db.remove(Stream.id == name)
+    db.remove(Stream.name == name)
 
 def log_access(name, ip):
     try:
@@ -38,6 +34,13 @@ def log_access(name, ip):
         'ip': ip,
         'timestamp': datetime.utcnow().isoformat()
     })
+
+    # Keep only entries from the last 7 days
+    cutoff = datetime.utcnow() - timedelta(days=7)
+    logs[name] = [
+        entry for entry in logs[name]
+        if datetime.fromisoformat(entry['timestamp']) >= cutoff
+    ]
 
     with open(LOG_PATH, 'w') as f:
         json.dump(logs, f, indent=2)
