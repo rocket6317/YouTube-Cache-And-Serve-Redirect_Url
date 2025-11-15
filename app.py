@@ -1,5 +1,31 @@
+import logging
 import ipaddress
+from datetime import timedelta
+from flask import Flask, redirect, request, render_template
 
+from db import init_db, get_stream, delete_stream, log_access, get_access_log, get_last_updated
+from scheduler import start_scheduler
+from fetcher import process_channels
+from config import UPDATE_INTERVAL_HOURS
+
+# --- Logging setup ---
+logging.basicConfig(level=logging.INFO, format='[%(asctime)s] [%(levelname)s] %(message)s')
+logger = logging.getLogger(__name__)
+
+class MinimalFilter(logging.Filter):
+    def filter(self, record):
+        return any(tag in record.msg for tag in ['[CACHE]', '[SERVE]', '[ADD]', '[DELETE]', '[REFRESH]'])
+logger.addFilter(MinimalFilter())
+
+# --- Flask app must be defined BEFORE routes ---
+app = Flask(__name__)
+
+# --- Init data and scheduler ---
+init_db()
+process_channels()
+start_scheduler()
+
+# --- IP helpers ---
 def _is_public_ip(ip_str):
     try:
         ip = ipaddress.ip_address(ip_str)
@@ -7,35 +33,30 @@ def _is_public_ip(ip_str):
     except ValueError:
         return False
 
-def get_client_and_proxy_ips(request):
+def get_client_and_proxy_ips(req):
     # Prefer Cloudflare's direct header for client if present
-    cf_client = request.headers.get('CF-Connecting-IP')
+    cf_client = req.headers.get('CF-Connecting-IP')
     if cf_client and _is_public_ip(cf_client):
         client_ip = cf_client.strip()
     else:
-        # Parse X-Forwarded-For chain: "client, cloudflare, ... (ascending hops)"
-        xff = request.headers.get('X-Forwarded-For', '')
+        xff = req.headers.get('X-Forwarded-For', '')
         chain = [i.strip() for i in xff.split(',') if i.strip()]
-        # Client is the first public IP
         client_ip = next((ip for ip in chain if _is_public_ip(ip)), None)
-        if not client_ip and _is_public_ip(request.remote_addr):
-            client_ip = request.remote_addr
+        if not client_ip and _is_public_ip(req.remote_addr):
+            client_ip = req.remote_addr
 
     # Proxy (Cloudflare) is the last public IP in the chain
-    xff = request.headers.get('X-Forwarded-For', '')
-    chain = [i.strip() for i in xff.split(',') if i.strip()]
     proxy_ip = None
     for ip in reversed(chain):
         if _is_public_ip(ip):
             proxy_ip = ip
             break
-
-    # Fallback: use remote_addr only if it's public (ignore Docker/private)
-    if not proxy_ip and _is_public_ip(request.remote_addr):
-        proxy_ip = request.remote_addr
+    if not proxy_ip and _is_public_ip(req.remote_addr):
+        proxy_ip = req.remote_addr
 
     return client_ip or 'unknown', proxy_ip or 'unknown'
 
+# --- Routes ---
 @app.route('/stream')
 def stream():
     name = request.args.get('name')
@@ -49,3 +70,5 @@ def stream():
         return redirect(m3u8)
     logger.warning(f"[MISS] {name} not found")
     return 'Stream not found', 404
+
+# ... other routes (dashboard, add, delete, refresh, logs) go here ...
