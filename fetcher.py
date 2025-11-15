@@ -1,6 +1,6 @@
 import yt_dlp
 import logging
-from db import update_stream, set_last_updated
+from db import update_stream
 from urllib.parse import urlparse, parse_qs
 
 logger = logging.getLogger(__name__)
@@ -42,4 +42,3 @@ def process_channels(file_path='channels.txt'):
                     logger.info(f"[CACHE] {channel_name} updated")
                 except Exception as e:
                     logger.warning(f"[ERROR] Failed to cache {name}: {e}")
-    set_last_updated()
