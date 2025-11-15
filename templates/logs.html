@@ -5,15 +5,15 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
-    <h1>📊 Redirect Access Logs</h1>
+    <h1>📊 Redirect Access Logs (last 7 days)</h1>
 
     {% if access_data %}
         {% for name, entries in access_data.items() %}
-            <h2>{{ name }} ({{ entries|length }} accesses)</h2>
+            <h2>{{ name }} ({{ entries|length }} accesses in last 7 days)</h2>
             <table>
                 <tr>
                     <th>IP Address</th>
-                    <th>Timestamp</th>
+                    <th>Timestamp (UTC)</th>
                 </tr>
                 {% for entry in entries %}
                 <tr>
@@ -24,7 +24,7 @@
             </table>
         {% endfor %}
     {% else %}
-        <p>No access logs yet.</p>
+        <p>No access logs in the last 7 days.</p>
     {% endif %}
 
     <p><a href="/dashboard" class="back-link">← Back to Dashboard</a></p>
