@@ -1,7 +1,6 @@
-from tinydb import TinyDB, Query
 from datetime import datetime, timedelta
 
-# In-memory database (resets on restart)
+# In-memory stores (reset on restart)
 streams = {}
 logs = {}
 
