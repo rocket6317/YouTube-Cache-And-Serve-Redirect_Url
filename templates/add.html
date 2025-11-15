@@ -2,15 +2,15 @@
 <html>
 <head>
     <title>Add Stream</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
-    <h1>➕ Add YouTube Stream</h1>
-    <form method="POST">
-        <label for="url">YouTube URL:</label><br>
-        <input type="text" name="url" id="url" placeholder="https://youtube.com/watch?v=..." required><br>
-        <input type="submit" value="Add Stream">
+    <h1>Add Stream</h1>
+    <form action="/dashboard/add" method="post">
+        <label for="url">YouTube URL:</label>
+        <input type="text" name="url" id="url" required>
+        <button type="submit">Add</button>
     </form>
-    <p><a href="/dashboard" class="back-link">← Back to Dashboard</a></p>
+    <a href="/dashboard">← Back to Dashboard</a>
 </body>
 </html>
