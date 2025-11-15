@@ -1,15 +1,21 @@
-from datetime import datetime, timedelta
+from datetime import datetime
+from tinydb import TinyDB, Query
+from config import DB_PATH
 
-# In-memory stores (reset on restart)
+# Streams still in memory (ephemeral)
 streams = {}
-logs = {}
-last_updated = None  # track last refresh time
+last_updated = None
+
+# TinyDB for logs (persistent across workers)
+db = TinyDB(DB_PATH)
+logs_table = db.table("logs")
 
 def init_db():
-    global streams, logs, last_updated
+    global streams, last_updated
     streams = {}
-    logs = {}
     last_updated = None
+    # clear logs older than 7 days if needed
+    # (optional pruning logic can be added here)
 
 def update_stream(name, url, m3u8, display_name=None):
     streams[name] = {
@@ -25,20 +31,37 @@ def get_stream(name):
 def delete_stream(name):
     if name in streams:
         del streams[name]
-    if name in logs:
-        del logs[name]
+    logs_table.remove(Query().channel == name)
 
 def log_access(name, ip):
-    if name not in logs:
-        logs[name] = {}
     now = datetime.utcnow().isoformat(timespec="seconds")
-    if ip not in logs[name]:
-        logs[name][ip] = {"count": 0, "last_seen": now}
-    logs[name][ip]["count"] += 1
-    logs[name][ip]["last_seen"] = now
+    Log = Query()
+    existing = logs_table.get((Log.channel == name) & (Log.ip == ip))
+    if existing:
+        logs_table.update({
+            "count": existing["count"] + 1,
+            "last_seen": now
+        }, doc_ids=[existing.doc_id])
+    else:
+        logs_table.insert({
+            "channel": name,
+            "ip": ip,
+            "count": 1,
+            "last_seen": now
+        })
 
 def get_access_log():
-    return logs
+    # Group logs by channel
+    grouped = {}
+    for entry in logs_table.all():
+        channel = entry["channel"]
+        if channel not in grouped:
+            grouped[channel] = {}
+        grouped[channel][entry["ip"]] = {
+            "count": entry["count"],
+            "last_seen": entry["last_seen"]
+        }
+    return grouped
 
 # Timestamp helpers
 def set_last_updated():
