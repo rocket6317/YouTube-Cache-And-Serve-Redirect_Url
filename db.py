@@ -59,3 +59,18 @@ def get_last_updated():
 
 def set_last_updated():
     db.table("meta").upsert({"last_updated": datetime.utcnow().isoformat(timespec="seconds")}, doc_ids=[1])
+
+def update_stream(name, url, display_name):
+    Stream = Query()
+    existing = streams_table.get(Stream.name == name)
+    if existing:
+        streams_table.update({
+            "url": url,
+            "display_name": display_name
+        }, doc_ids=[existing.doc_id])
+    else:
+        streams_table.insert({
+            "name": name,
+            "url": url,
+            "display_name": display_name
+        })
