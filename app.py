@@ -4,7 +4,10 @@ from fetcher import process_channels
 from scheduler import start_scheduler
 
 app = Flask(__name__)
+
+# ✅ Initialize DB and fetch streams immediately
 init_db()
+process_channels()
 start_scheduler()
 
 @app.route("/")
