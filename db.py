@@ -50,25 +50,23 @@ def delete_stream(name):
     logs_table.remove(Query().channel == name)
 
 # --- Logging ---
-def log_access(name, client_ip, proxy_ip):
+def log_access(name, ip):
     now = datetime.utcnow().isoformat(timespec="seconds")
     Log = Query()
-    existing = logs_table.get((Log.channel == name) & (Log.client_ip == client_ip))
+    existing = logs_table.get((Log.channel == name) & (Log.ip == ip))
     if existing:
         logs_table.update({
             "count": existing["count"] + 1,
-            "last_seen": now,
-            "proxy_ip": proxy_ip
+            "last_seen": now
         }, doc_ids=[existing.doc_id])
     else:
         logs_table.insert({
             "channel": name,
-            "client_ip": client_ip,
-            "proxy_ip": proxy_ip,
+            "ip": ip,
             "count": 1,
             "last_seen": now
         })
-    # pruning now handled by scheduler at midnight
+    # pruning handled by scheduler at midnight
 
 def get_access_log():
     grouped = {}
