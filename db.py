@@ -74,10 +74,9 @@ def get_access_log():
         channel = entry["channel"]
         if channel not in grouped:
             grouped[channel] = {}
-        grouped[channel][entry["client_ip"]] = {
+        grouped[channel][entry["ip"]] = {
             "count": entry["count"],
-            "last_seen": entry["last_seen"],
-            "proxy_ip": entry["proxy_ip"]
+            "last_seen": entry["last_seen"]
         }
     return grouped
 
