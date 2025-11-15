@@ -28,13 +28,15 @@
     <table>
         <tr>
             <th>Channel</th>
-            <th>Redirect</th>
+            <th>Redirect Link</th>
+            <th>Stream Link</th>
             <th>Action</th>
         </tr>
         {% for stream in streams %}
         <tr>
             <td>{{ stream.display_name }}</td>
-            <td><a href="/stream?name={{ stream.name }}" target="_blank">Link</a></td>
+            <td><a href="/stream?name={{ stream.name }}" target="_blank">Redirect Link</a></td>
+            <td><a href="{{ stream.url }}" target="_blank">Stream Link</a></td>
             <td>
                 <form method="POST" action="/dashboard/delete" style="display:inline">
                     <input type="hidden" name="name" value="{{ stream.name }}">
