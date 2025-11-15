@@ -1,89 +1,58 @@
-from datetime import datetime, timedelta
-from tinydb import TinyDB, Query
-from tinydb.storages import JSONStorage
-from tinydb.middlewares import CachingMiddleware
-from config import DB_PATH
-import os
 import json
-import logging
+import os
+from datetime import datetime
 
-# Safe startup check
-if not os.path.exists(DB_PATH) or os.stat(DB_PATH).st_size == 0:
-    with open(DB_PATH, 'w') as f:
-        json.dump({}, f)
-
-db = TinyDB(DB_PATH, storage=CachingMiddleware(JSONStorage))
-streams_table = db.table("streams")
-logs_table = db.table("logs")
-
-streams = {}
+DB_PATH = "db.json"
 
 def init_db():
-    global streams
-    try:
-        streams = {entry["name"]: entry for entry in streams_table.all()}
-    except Exception as e:
-        logging.warning(f"[DB INIT] Failed to load streams: {e}")
-        streams = {}
+    if not os.path.exists(DB_PATH) or os.stat(DB_PATH).st_size == 0:
+        with open(DB_PATH, 'w') as f:
+            json.dump({"streams": {}, "access_log": []}, f)
 
-def get_stream(name):
-    return streams.get(name, {}).get("url")
-
-def delete_stream(name):
-    global streams
-    Stream = Query()
-    streams_table.remove(Stream.name == name)
-    streams.pop(name, None)
-
-def update_stream(name, url, m3u8, display_name):
-    Stream = Query()
-    existing = streams_table.get(Stream.name == name)
-    if existing:
-        streams_table.update({
-            "url": m3u8,
-            "display_name": display_name
-        }, doc_ids=[existing.doc_id])
-    else:
-        streams_table.insert({
-            "name": name,
-            "url": m3u8,
-            "display_name": display_name
-        })
-    streams[name] = {
-        "name": name,
-        "url": m3u8,
-        "display_name": display_name
-    }
-
-def log_access(name, ip):
-    from datetime import datetime
-    timestamp = datetime.utcnow().isoformat()
-
-    # Load existing DB
+def load_db():
     with open(DB_PATH, 'r') as f:
-        db = json.load(f)
+        return json.load(f)
 
-    # Ensure access_log exists
-    if "access_log" not in db:
-        db["access_log"] = []
-
-    # Append new log entry
-    db["access_log"].append({
-        "name": name,
-        "ip": ip,
-        "timestamp": timestamp
-    })
-
-    # Save back to file
+def save_db(db):
     with open(DB_PATH, 'w') as f:
         json.dump(db, f, indent=2)
 
-def get_access_log():
-    with open(DB_PATH, 'r') as f:
-        db = json.load(f)
-    return db.get("access_log", [])
+def update_stream(name, url, m3u8, channel):
+    db = load_db()
+    db["streams"][name] = {
+        "url": url,
+        "m3u8": m3u8,
+        "channel": channel
+    }
+    save_db(db)
 
-def prune_old_logs(days=7):
-    cutoff = datetime.utcnow() - timedelta(days=days)
-    Log = Query()
-    logs_table.remove(Log.last_seen.test(lambda ts: datetime.fromisoformat(ts) < cutoff))
+def delete_stream(name):
+    db = load_db()
+    db["streams"].pop(name, None)
+    save_db(db)
+
+def get_stream(name):
+    stream = load_db()["streams"].get(name)
+    if stream and "url" in stream:
+        url = stream["url"]
+        if "watch?v=" in url:
+            return url.replace("watch?v=", "embed/") + "?autoplay=1"
+        return url
+    return None
+
+def log_access(name, ip):
+    db = load_db()
+    channel = db["streams"].get(name, {}).get("channel", name)
+    db["access_log"].append({
+        "name": name,
+        "channel": channel,
+        "ip": ip,
+        "timestamp": datetime.utcnow().isoformat()
+    })
+    save_db(db)
+
+def get_access_log():
+    return load_db().get("access_log", [])
+
+def streams_table():
+    return load_db().get("streams", {})
