@@ -1,33 +1,28 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Access Logs</title>
-    <link rel="stylesheet" href="/static/style.css">
-</head>
-<body>
-    <h1>Access Logs</h1>
-    <p><a href="/dashboard">← Back to Dashboard</a></p>
+{% set grouped_logs = {} %}
+{% for log in logs %}
+  {% set grouped_logs = grouped_logs.update({
+    log.channel: (grouped_logs.get(log.channel, []) + [log])
+  }) %}
+{% endfor %}
 
-    {% for channel, ips in logs.items() %}
-        <h2>{{ channel }}</h2>
-        <table>
-            <thead>
-                <tr>
-                    <th>IP Address</th>
-                    <th>Count</th>
-                    <th>Last Seen</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for ip, data in ips.items() %}
-                <tr>
-                    <td>{{ ip }}</td>
-                    <td>{{ data.count }}</td>
-                    <td>{{ data.last_seen }}</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+{% for channel, entries in grouped_logs.items() %}
+  <h3>{{ channel }} ({{ entries|length }} accesses)</h3>
+  <table>
+    <tr>
+      <th>IP Address</th>
+      <th>Timestamp</th>
+    </tr>
+    {% set ip_counts = {} %}
+    {% for entry in entries %}
+      {% set ip_counts = ip_counts.update({
+        entry.ip: ip_counts.get(entry.ip, 0) + 1
+      }) %}
     {% endfor %}
-</body>
-</html>
+    {% for entry in entries %}
+    <tr>
+      <td>{{ entry.ip }} ({{ ip_counts[entry.ip] }})</td>
+      <td>{{ entry.timestamp }}</td>
+    </tr>
+    {% endfor %}
+  </table>
+{% endfor %}
