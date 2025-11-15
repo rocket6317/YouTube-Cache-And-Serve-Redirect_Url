@@ -1,5 +1,8 @@
 from flask import Flask, request, redirect, render_template
-from db import init_db, get_stream, log_access, get_access_log, delete_stream, streams_table, update_stream
+from db import (
+    init_db, get_stream, log_access, get_access_log,
+    delete_stream, streams_table, update_stream
+)
 from fetcher import process_channels, fetch_info, extract_name
 from scheduler import start_scheduler
 
