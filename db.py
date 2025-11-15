@@ -1,27 +1,18 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 from tinydb import TinyDB, Query
 from tinydb.storages import JSONStorage
 from tinydb.middlewares import CachingMiddleware
 from config import DB_PATH
 
-# Initialize TinyDB with caching for performance
 db = TinyDB(DB_PATH, storage=CachingMiddleware(JSONStorage))
 streams_table = db.table("streams")
 logs_table = db.table("logs")
-meta_table = db.table("meta")
 
-# In-memory cache of streams for fast lookup
 streams = {}
 
 def init_db():
     global streams
-    try:
-        streams = {entry["name"]: entry for entry in streams_table.all()}
-    except Exception:
-        # Handle corrupted or empty db.json
-        with open(DB_PATH, 'w') as f:
-            f.write('{}')
-        streams = {}
+    streams = {entry["name"]: entry for entry in streams_table.all()}
 
 def get_stream(name):
     return streams.get(name, {}).get("url")
@@ -33,7 +24,6 @@ def delete_stream(name):
     streams.pop(name, None)
 
 def update_stream(name, url, m3u8, display_name):
-    global streams
     Stream = Query()
     existing = streams_table.get(Stream.name == name)
     if existing:
@@ -47,7 +37,6 @@ def update_stream(name, url, m3u8, display_name):
             "url": m3u8,
             "display_name": display_name
         })
-    # Refresh in-memory cache
     streams[name] = {
         "name": name,
         "url": m3u8,
@@ -83,19 +72,7 @@ def get_access_log():
         }
     return grouped
 
-def get_last_updated():
-    Meta = Query()
-    meta = meta_table.get(Meta.type == "meta")
-    if meta and "last_updated" in meta:
-        return datetime.fromisoformat(meta["last_updated"])
-    return None
-
-def set_last_updated():
-    Meta = Query()
-    meta_table.upsert(
-        {
-            "type": "meta",
-            "last_updated": datetime.utcnow().isoformat(timespec="seconds")
-        },
-        Meta.type == "meta"
-    )
+def prune_old_logs(days=7):
+    cutoff = datetime.utcnow() - timedelta(days=days)
+    Log = Query()
+    logs_table.remove(Log.last_seen.test(lambda ts: datetime.fromisoformat(ts) < cutoff))
