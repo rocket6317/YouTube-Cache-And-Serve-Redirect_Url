@@ -17,7 +17,7 @@ def home():
 @app.route("/stream")
 def stream():
     name = request.args.get("name")
-    ip = request.remote_addr
+    ip = request.headers.get('X-Forwarded-For', request.remote_addr).split(',')[0].strip()
     url = get_stream(name)
     if url:
         log_access(name, ip)
