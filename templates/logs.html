@@ -5,31 +5,30 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
-    <h1>📊 Redirect Access Logs (last 7 days, ephemeral)</h1>
+    <h1>📊 Redirect Access Logs (grouped by channel & IP)</h1>
 
     {% if access_data %}
-        {% for name, entries in access_data.items() %}
-            <h2>{{ streams[name].display_name if name in streams else name }} 
-                ({{ entries|length }} accesses in last 7 days)
-            </h2>
+        {% for name, ip_data in access_data.items() %}
+            <h2>{{ streams[name].display_name if name in streams else name }}</h2>
             <table>
                 <tr>
                     <th>IP Address</th>
-                    <th>Timestamp (UTC)</th>
+                    <th>Access Count</th>
+                    <th>Last Seen (UTC)</th>
                 </tr>
-                {% for entry in entries %}
+                {% for ip, entry in ip_data.items() %}
                 <tr>
-                    <td>{{ entry.ip }}</td>
-                    <td>{{ entry.timestamp }}</td>
+                    <td>{{ ip }}</td>
+                    <td>{{ entry.count }}</td>
+                    <td>{{ entry.last_seen }}</td>
                 </tr>
                 {% endfor %}
             </table>
         {% endfor %}
     {% else %}
-        <p>No access logs in the last 7 days.</p>
+        <p>No access logs yet.</p>
     {% endif %}
 
     <p><a href="/dashboard" class="back-link">← Back to Dashboard</a></p>
-    <em>⚠️ Logs reset each time the container restarts — only last 7 days kept.</em>
 </body>
 </html>
