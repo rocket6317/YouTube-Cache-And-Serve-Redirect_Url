@@ -64,10 +64,10 @@ def stream():
         return 'Missing name parameter', 400
     m3u8 = get_stream(name)
     if m3u8:
-        # Just log one IP (prefer X-Forwarded-For if present, else remote_addr)
-        ip = request.headers.get('X-Forwarded-For', request.remote_addr)
-        log_access(name, ip)
-        logger.info(f"[SERVE] {name} served to {ip}")
+        proxy_ip = request.remote_addr
+        client_ip = request.headers.get('X-Forwarded-For', proxy_ip)
+        log_access(name, client_ip, proxy_ip)
+        logger.info(f"[SERVE] {name} served to client {client_ip} via proxy {proxy_ip}")
         return redirect(m3u8)
     logger.warning(f"[MISS] {name} not found")
     return 'Stream not found', 404
