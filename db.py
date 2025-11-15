@@ -79,16 +79,9 @@ def log_access(name, ip):
         json.dump(db, f, indent=2)
 
 def get_access_log():
-    grouped = {}
-    for entry in logs_table.all():
-        channel = entry["channel"]
-        if channel not in grouped:
-            grouped[channel] = {}
-        grouped[channel][entry["ip"]] = {
-            "count": entry["count"],
-            "last_seen": entry["last_seen"]
-        }
-    return grouped
+    with open(DB_PATH, 'r') as f:
+        db = json.load(f)
+    return db.get("access_log", [])
 
 def prune_old_logs(days=7):
     cutoff = datetime.utcnow() - timedelta(days=days)
