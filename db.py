@@ -12,12 +12,10 @@ if not os.path.exists(DB_PATH) or os.stat(DB_PATH).st_size == 0:
     with open(DB_PATH, 'w') as f:
         json.dump({}, f)
 
-# Initialize TinyDB
 db = TinyDB(DB_PATH, storage=CachingMiddleware(JSONStorage))
 streams_table = db.table("streams")
 logs_table = db.table("logs")
 
-# In-memory cache of streams
 streams = {}
 
 def init_db():
