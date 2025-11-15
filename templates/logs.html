@@ -9,7 +9,11 @@
 
     {% if access_data %}
         {% for name, ip_data in access_data.items() %}
-            <h2>{{ streams[name].display_name if name in streams else name }}</h2>
+            <h2>
+                {{ streams[name].display_name if name in streams else name }}
+                — Total accesses: {{ ip_data.values()|map(attribute='count')|sum }},
+                Unique IPs: {{ ip_data|length }}
+            </h2>
             <table>
                 <tr>
                     <th>IP Address</th>
@@ -30,5 +34,6 @@
     {% endif %}
 
     <p><a href="/dashboard" class="back-link">← Back to Dashboard</a></p>
+    <em>⚠️ Logs reset each time the container restarts.</em>
 </body>
 </html>
