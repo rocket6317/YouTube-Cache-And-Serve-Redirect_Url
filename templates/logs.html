@@ -16,13 +16,15 @@
             </h2>
             <table>
                 <tr>
-                    <th>IP Address</th>
+                    <th>Client IP</th>
+                    <th>Proxy IP</th>
                     <th>Access Count</th>
                     <th>Last Seen (UTC)</th>
                 </tr>
                 {% for ip, entry in ip_data.items() %}
                 <tr>
                     <td>{{ ip }}</td>
+                    <td>{{ entry.proxy_ip }}</td>
                     <td>{{ entry.count }}</td>
                     <td>{{ entry.last_seen }}</td>
                 </tr>
@@ -35,6 +37,6 @@
     {% endif %}
 
     <p><a href="/dashboard" class="back-link">← Back to Dashboard</a></p>
-    <em>⚠️ Logs are stored in TinyDB, pruned nightly at midnight UTC, and persist across workers.</em>
+    <em>⚠️ Logs are stored in TinyDB and persist across workers.</em>
 </body>
 </html>
