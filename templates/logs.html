@@ -10,26 +10,27 @@
     {% if access_data %}
         {% for name, ip_data in access_data.items() %}
             <h2>
-    {{ streams[name].display_name if name in streams else name }}
-    — Total accesses: {{ ip_data.values()|map(attribute='count')|sum }},
-    Unique IPs: {{ ip_data|length }}
-</h2>
-<table>
-    <tr>
-        <th>Client IP</th>
-        <th>Proxy IP</th>
-        <th>Access Count</th>
-        <th>Last Seen (UTC)</th>
-    </tr>
-    {% for ip, entry in ip_data.items() %}
-    <tr>
-        <td>{{ ip }}</td>
-        <td>{{ entry.proxy_ip }}</td>
-        <td>{{ entry.count }}</td>
-        <td>{{ entry.last_seen }}</td>
-    </tr>
-    {% endfor %}
-</table>
+                {{ streams[name].display_name if name in streams else name }}
+                — Total accesses: {{ ip_data.values()|map(attribute='count')|sum }},
+                Unique IPs: {{ ip_data|length }}
+            </h2>
+            <table>
+                <tr>
+                    <th>Client IP</th>
+                    <th>Proxy IP</th>
+                    <th>Access Count</th>
+                    <th>Last Seen (UTC)</th>
+                </tr>
+                {% for ip, entry in ip_data.items() %}
+                <tr>
+                    <td>{{ ip }}</td>
+                    <td>{{ entry.proxy_ip }}</td>
+                    <td>{{ entry.count }}</td>
+                    <td>{{ entry.last_seen }}</td>
+                </tr>
+                {% endfor %}
+            </table>
+            <hr>
         {% endfor %}
     {% else %}
         <p>No access logs yet.</p>
