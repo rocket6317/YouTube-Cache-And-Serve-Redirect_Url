@@ -5,7 +5,7 @@ from urllib.parse import urlparse, parse_qs
 
 logger = logging.getLogger(__name__)
 
-def fetch_m3u8(url):
+def fetch_info(url):
     ydl_opts = {
         'quiet': True,
         'skip_download': True,
@@ -17,7 +17,7 @@ def fetch_m3u8(url):
     }
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
         info = ydl.extract_info(url, download=False)
-        return info.get('url')
+        return info
 
 def extract_name(url):
     if '@' in url:
@@ -35,8 +35,10 @@ def process_channels(file_path='channels.txt'):
             if url:
                 name = extract_name(url)
                 try:
-                    m3u8 = fetch_m3u8(url)
-                    update_stream(name, url, m3u8)
-                    logger.info(f"[CACHE] {name} updated")
+                    info = fetch_info(url)
+                    m3u8 = info.get('url')
+                    title = info.get('title', name)  # fallback to internal name
+                    update_stream(name, url, m3u8, title)
+                    logger.info(f"[CACHE] {title} updated")
                 except Exception as e:
                     logger.warning(f"[ERROR] Failed to cache {name}: {e}")
