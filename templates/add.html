@@ -5,12 +5,14 @@
     <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
-    <h1>Add Stream</h1>
+    <h1>Add a New Stream</h1>
+
     <form action="/dashboard/add" method="post">
         <label for="url">YouTube URL:</label>
-        <input type="text" name="url" id="url" required>
-        <button type="submit">Add</button>
+        <input type="text" id="url" name="url" required>
+        <button type="submit">Add Stream</button>
     </form>
-    <a href="/dashboard">← Back to Dashboard</a>
+
+    <p><a href="/dashboard">← Back to Dashboard</a></p>
 </body>
 </html>
