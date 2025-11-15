@@ -42,4 +42,4 @@ def process_channels(file_path='channels.txt'):
                     logger.info(f"[CACHE] {channel_name} updated")
                 except Exception as e:
                     logger.warning(f"[ERROR] Failed to cache {name}: {e}")
-    set_last_updated()  # record refresh time
+    set_last_updated()
