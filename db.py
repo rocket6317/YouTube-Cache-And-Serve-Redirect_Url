@@ -1,11 +1,10 @@
 from tinydb import TinyDB, Query
-from config import DB_PATH
+from config import DB_PATH, LOG_PATH
 import json
 from datetime import datetime, timedelta
 
 db = TinyDB(DB_PATH)
 Stream = Query()
-LOG_PATH = 'access_log.json'
 
 def init_db():
     pass
