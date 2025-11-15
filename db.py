@@ -1,10 +1,12 @@
 from tinydb import TinyDB, Query
-from config import DB_PATH, LOG_PATH
-import json
+from config import DB_PATH
 from datetime import datetime, timedelta
 
 db = TinyDB(DB_PATH)
 Stream = Query()
+
+# In-memory logs (reset on container restart)
+logs = {}
 
 def init_db():
     pass
@@ -18,35 +20,22 @@ def get_stream(name):
 
 def delete_stream(name):
     db.remove(Stream.name == name)
+    if name in logs:
+        del logs[name]
 
 def log_access(name, ip):
-    try:
-        with open(LOG_PATH, 'r') as f:
-            logs = json.load(f)
-    except:
-        logs = {}
-
     if name not in logs:
         logs[name] = []
-
     logs[name].append({
         'ip': ip,
         'timestamp': datetime.utcnow().isoformat()
     })
-
-    # Keep only entries from the last 7 days
+    # prune older than 7 days
     cutoff = datetime.utcnow() - timedelta(days=7)
     logs[name] = [
         entry for entry in logs[name]
         if datetime.fromisoformat(entry['timestamp']) >= cutoff
     ]
 
-    with open(LOG_PATH, 'w') as f:
-        json.dump(logs, f, indent=2)
-
 def get_access_log():
-    try:
-        with open(LOG_PATH, 'r') as f:
-            return json.load(f)
-    except:
-        return {}
+    return logs
