@@ -5,7 +5,7 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
-    <h1>📺 Cached Streams</h1>
+    <h1>📺 Cached Streams (Ephemeral)</h1>
 
     {% if message %}
         <div class="message">{{ message }}</div>
@@ -21,7 +21,8 @@
 
     <div class="meta">
         <strong>Last updated:</strong> {{ last_updated }}<br>
-        <strong>Next update:</strong> {{ next_update }}
+        <strong>Next update:</strong> {{ next_update }}<br>
+        <em>⚠️ Streams reset each time the container restarts — fresh start mode.</em>
     </div>
 
     <table>
@@ -45,7 +46,7 @@
     </table>
 
     {% if not streams %}
-        <p>No streams cached yet.</p>
+        <p>No streams cached yet. Add one above or wait for the scheduler to fetch.</p>
     {% endif %}
 </body>
 </html>
