@@ -56,21 +56,27 @@ def update_stream(name, url, m3u8, display_name):
     }
 
 def log_access(name, ip):
-    now = datetime.utcnow().isoformat(timespec="seconds")
-    Log = Query()
-    existing = logs_table.get((Log.channel == name) & (Log.ip == ip))
-    if existing:
-        logs_table.update({
-            "count": existing["count"] + 1,
-            "last_seen": now
-        }, doc_ids=[existing.doc_id])
-    else:
-        logs_table.insert({
-            "channel": name,
-            "ip": ip,
-            "count": 1,
-            "last_seen": now
-        })
+    from datetime import datetime
+    timestamp = datetime.utcnow().isoformat()
+
+    # Load existing DB
+    with open(DB_PATH, 'r') as f:
+        db = json.load(f)
+
+    # Ensure access_log exists
+    if "access_log" not in db:
+        db["access_log"] = []
+
+    # Append new log entry
+    db["access_log"].append({
+        "name": name,
+        "ip": ip,
+        "timestamp": timestamp
+    })
+
+    # Save back to file
+    with open(DB_PATH, 'w') as f:
+        json.dump(db, f, indent=2)
 
 def get_access_log():
     grouped = {}
