@@ -1,31 +1,54 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Access Logs</title>
-    <link rel="stylesheet" href="/static/style.css">
+  <title>Access Logs</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
 </head>
 <body>
+  <div class="container">
     <h1>Access Logs</h1>
 
-    <table>
+    {% set grouped_logs = {} %}
+    {% for log in logs %}
+      {% set channel = log.channel %}
+      {% if channel not in grouped_logs %}
+        {% set _ = grouped_logs.update({channel: []}) %}
+      {% endif %}
+      {% set _ = grouped_logs[channel].append(log) %}
+    {% endfor %}
+
+    {% for channel, entries in grouped_logs.items() %}
+      <h2>{{ channel }}</h2>
+      {% set ip_group = {} %}
+      {% for entry in entries %}
+        {% set ip = entry.ip %}
+        {% if ip not in ip_group %}
+          {% set _ = ip_group.update({ip: []}) %}
+        {% endif %}
+        {% set _ = ip_group[ip].append(entry.timestamp) %}
+      {% endfor %}
+
+      <table>
         <thead>
-            <tr>
-                <th>Stream Name</th>
-                <th>IP Address</th>
-                <th>Timestamp</th>
-            </tr>
+          <tr>
+            <th>IP Address</th>
+            <th>Access Count</th>
+            <th>First Access</th>
+            <th>Latest Access</th>
+          </tr>
         </thead>
         <tbody>
-            {% for log in logs %}
-            <tr>
-                <td>{{ log.name }}</td>
-                <td>{{ log.ip }}</td>
-                <td>{{ log.timestamp }}</td>
-            </tr>
-            {% endfor %}
+          {% for ip, timestamps in ip_group.items() %}
+          <tr>
+            <td>{{ ip }}</td>
+            <td>{{ timestamps|length }}</td>
+            <td>{{ timestamps|min }}</td>
+            <td>{{ timestamps|max }}</td>
+          </tr>
+          {% endfor %}
         </tbody>
-    </table>
-
-    <p><a href="/dashboard">⬅️ Back to Dashboard</a></p>
+      </table>
+    {% endfor %}
+  </div>
 </body>
 </html>
