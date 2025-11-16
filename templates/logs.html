@@ -76,22 +76,26 @@
           <thead>
             <tr>
               <th>IP Address</th>
+              <th>Cloudflare IP</th>
               <th>Access Count</th>
               <th>First Access</th>
               <th>Latest Access</th>
+              <th>Channel Name</th>
+              <th>Fetched At</th>
             </tr>
           </thead>
           <tbody>
-            {% for ip, timestamps in ip_group.items() %}
+            {% for ip, entries in ip_group.items() %}
+              {% set timestamps = entries | map(attribute='timestamp') | list %}
               <tr>
-  <td>{{ ip }}</td>
-  <td>{{ entries[0].cf_ip }}</td>
-  <td>{{ entries | length }}</td>
-  <td>{{ entries | map(attribute='timestamp') | min }}</td>
-  <td>{{ entries | map(attribute='timestamp') | max }}</td>
-  <td>{{ entries[0].stream.channel }}</td>
-  <td>{{ entries[0].stream.fetched_at }}</td>
-</tr>
+                <td>{{ ip }}</td>
+                <td>{{ entries[0].cf_ip }}</td>
+                <td>{{ timestamps | length }}</td>
+                <td>{{ timestamps | min }}</td>
+                <td>{{ timestamps | max }}</td>
+                <td>{{ entries[0].stream.channel }}</td>
+                <td>{{ entries[0].stream.fetched_at }}</td>
+              </tr>
             {% endfor %}
           </tbody>
         </table>
