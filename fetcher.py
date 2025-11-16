@@ -32,8 +32,13 @@ def extract_name(url):
         return "unknown"
 
 def process_channels():
-    with open("channels.txt") as f:
-        urls = [line.strip() for line in f if line.strip()]
+    try:
+        with open("channels.txt") as f:
+            urls = [line.strip() for line in f if line.strip()]
+    except Exception as e:
+        print(f"[ERROR] Failed to read channels.txt: {e}")
+        return
+
     for url in urls:
         name = extract_name(url)
         try:
