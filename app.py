@@ -57,6 +57,7 @@ def logs():
     for log in raw_logs:
         channel = log.get("channel", "Unknown")
         ip = log.get("ip")
+        cf_ip = log.get("cf_ip", ip)
         timestamp = log.get("timestamp")
 
         if channel not in grouped:
@@ -65,7 +66,10 @@ def logs():
         if ip not in grouped[channel]:
             grouped[channel][ip] = []
 
-        grouped[channel][ip].append(timestamp)
+        grouped[channel][ip].append({
+            "timestamp": timestamp,
+            "cf_ip": cf_ip
+        })
 
     return render_template("logs.html", grouped_logs=grouped)
 
