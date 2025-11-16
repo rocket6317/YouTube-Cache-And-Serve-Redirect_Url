@@ -25,8 +25,8 @@
     <table>
         <thead>
             <tr>
-                <th>Name (Channel)</th>
-                <th>Direct Stream URL</th>
+                <th>Channel Name</th>
+                <th>Direct .m3u8 URL</th>
                 <th>IPTV Redirect URL</th>
                 <th>Actions</th>
             </tr>
@@ -38,7 +38,6 @@
                 <td><a href="{{ stream.url }}" target="_blank">{{ stream.url }}</a></td>
                 <td><code>{{ request.host_url }}stream?name={{ name }}</code></td>
                 <td>
-                    <a href="/stream?name={{ name }}" target="_blank">▶️ Open</a>
                     <form action="/dashboard/delete" method="post" style="display:inline;">
                         <input type="hidden" name="name" value="{{ name }}">
                         <button type="submit">🗑️ Delete</button>
