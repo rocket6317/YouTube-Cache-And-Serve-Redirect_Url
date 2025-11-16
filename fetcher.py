@@ -7,6 +7,7 @@ logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
 
 def fetch_info(url):
+    import yt_dlp
     ydl_opts = {
         'quiet': True,
         'skip_download': True,
@@ -16,15 +17,16 @@ def fetch_info(url):
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
         info = ydl.extract_info(url, download=False)
 
-    # Try to get a playable stream URL
-    stream_url = None
+    # ✅ Extract the best HLS stream (usually .m3u8)
     formats = info.get("formats", [])
+    stream_url = None
     for f in formats:
-        if f.get("ext") == "mp4" and f.get("url"):
+        if f.get("protocol") == "m3u8" and f.get("url"):
             stream_url = f["url"]
             break
+
     if not stream_url:
-        stream_url = info.get("url")  # fallback
+        raise Exception("No direct stream URL found")
 
     return {
         "url": stream_url,
