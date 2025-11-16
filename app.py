@@ -1,4 +1,4 @@
-from flask import Flask, request, redirect, render_template, url_for, jsonify
+from flask import Flask, request, redirect, render_template, url_for
 from datetime import datetime, timedelta
 from db import (
     get_stream, get_all_streams, update_stream, delete_stream,
@@ -8,20 +8,26 @@ from fetcher import fetch_info
 from config import UPDATE_INTERVAL_HOURS
 
 app = Flask(__name__)
-
-# Track last update time
 last_update = None
 
 @app.route("/stream")
 def stream():
     name = request.args.get("name")
+    if not name:
+        print("[ERROR] /stream called without name param")
+        return "Missing stream name", 400
+
     ip = request.headers.get('X-Forwarded-For', request.remote_addr).split(',')[0].strip()
     cf_ip = request.headers.get('CF-Connecting-IP', ip)
     url = get_stream(name)
+
     if url:
+        print(f"[STREAM] Redirecting {ip} (CF: {cf_ip}) to {url}")
         log_access(name, ip, cf_ip)
         return redirect(url)
-    return "Stream not found", 404
+    else:
+        print(f"[ERROR] Stream not found for name={name}")
+        return "Stream not found", 404
 
 @app.route("/dashboard")
 def dashboard():
@@ -76,6 +82,9 @@ def logs():
         if ip not in grouped[channel]:
             grouped[channel][ip] = []
 
-        grouped[channel][ip].append(log)
+        grouped[channel][ip].append({
+            "timestamp": timestamp,
+            "cf_ip": cf_ip
+        })
 
     return render_template("logs.html", grouped_logs=grouped)
