@@ -5,9 +5,8 @@ from datetime import datetime, timedelta
 DB_PATH = "db.json"
 
 def init_db():
-    if not os.path.exists(DB_PATH) or os.stat(DB_PATH).st_size == 0:
-        with open(DB_PATH, 'w') as f:
-            json.dump({"streams": {}, "access_log": []}, f)
+    with open(DB_PATH, 'w') as f:
+        json.dump({"streams": {}, "access_log": []}, f)
 
 def load_db():
     if not os.path.exists(DB_PATH) or os.stat(DB_PATH).st_size == 0:
