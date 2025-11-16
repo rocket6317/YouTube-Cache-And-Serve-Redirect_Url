@@ -17,14 +17,8 @@ def fetch_info(url):
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
         info = ydl.extract_info(url, download=False)
 
-    # ✅ Extract the best HLS stream (usually .m3u8)
-    formats = info.get("formats", [])
-    stream_url = None
-    for f in formats:
-        if f.get("protocol") == "m3u8" and f.get("url"):
-            stream_url = f["url"]
-            break
-
+    # ✅ Use the best available stream URL
+    stream_url = info.get("url")
     if not stream_url:
         raise Exception("No direct stream URL found")
 
