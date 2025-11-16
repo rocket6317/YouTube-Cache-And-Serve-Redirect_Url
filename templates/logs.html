@@ -9,6 +9,7 @@
       margin: 0;
       padding: 20px;
     }
+
     .container {
       max-width: 960px;
       margin: auto;
@@ -17,10 +18,12 @@
       border-radius: 8px;
       box-shadow: 0 0 10px rgba(0,0,0,0.1);
     }
+
     h1 {
       text-align: center;
       margin-bottom: 30px;
     }
+
     h2 {
       margin-top: 40px;
       font-size: 1.2em;
@@ -28,29 +31,35 @@
       border-bottom: 1px solid #ccc;
       padding-bottom: 5px;
     }
+
     table {
       width: 100%;
       border-collapse: collapse;
       margin-top: 15px;
       margin-bottom: 30px;
     }
+
     th, td {
       border: 1px solid #ccc;
       padding: 10px 14px;
       text-align: left;
     }
+
     thead {
       background-color: #f0f0f0;
     }
+
     a {
       display: inline-block;
       margin-top: 20px;
       text-decoration: none;
       color: #007BFF;
     }
+
     a:hover {
       text-decoration: underline;
     }
+
     em {
       color: #666;
     }
@@ -67,19 +76,15 @@
           <thead>
             <tr>
               <th>IP Address</th>
-              <th>Cloudflare IP</th>
               <th>Access Count</th>
               <th>First Access</th>
               <th>Latest Access</th>
             </tr>
           </thead>
           <tbody>
-            {% for ip, entries in ip_group.items() %}
-              {% set cf_ip = entries[0].cf_ip %}
-              {% set timestamps = entries | map(attribute='timestamp') | list %}
+            {% for ip, timestamps in ip_group.items() %}
               <tr>
                 <td>{{ ip }}</td>
-                <td>{{ cf_ip }}</td>
                 <td>{{ timestamps|length }}</td>
                 <td>{{ timestamps|min }}</td>
                 <td>{{ timestamps|max }}</td>
