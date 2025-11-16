@@ -21,9 +21,10 @@ def home():
 def stream():
     name = request.args.get("name")
     ip = request.headers.get('X-Forwarded-For', request.remote_addr).split(',')[0].strip()
+    cf_ip = request.headers.get('CF-Connecting-IP', ip)
     url = get_stream(name)
     if url:
-        log_access(name, ip)
+        log_access(name, ip, cf_ip)
         return redirect(url)
     return "Stream not found", 404
 
