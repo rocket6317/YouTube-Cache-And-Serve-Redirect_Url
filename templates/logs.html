@@ -1,47 +1,54 @@
-{% set grouped_logs = {} %}
-{% for log in logs %}
-  {% set channel = log.channel %}
-  {% if channel not in grouped_logs %}
-    {% set _ = grouped_logs.update({channel: []}) %}
-  {% endif %}
-  {% set _ = grouped_logs[channel].append(log) %}
-{% endfor %}
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Access Logs</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+  <div class="container">
+    <h1>Access Logs</h1>
 
-<h2>Access Logs by Channel</h2>
+    {% set grouped_logs = {} %}
+    {% for log in logs %}
+      {% set channel = log.channel %}
+      {% if channel not in grouped_logs %}
+        {% set _ = grouped_logs.update({channel: []}) %}
+      {% endif %}
+      {% set _ = grouped_logs[channel].append(log) %}
+    {% endfor %}
 
-{% for channel, entries in grouped_logs.items() %}
-  <h3>{{ channel }}</h3>
-  {% set ip_group = {} %}
-  {% for entry in entries %}
-    {% set ip = entry.ip %}
-    {% if ip not in ip_group %}
-      {% set _ = ip_group.update({ip: []}) %}
-    {% endif %}
-    {% set _ = ip_group[ip].append(entry.timestamp) %}
-  {% endfor %}
-
-  <table border="1" cellpadding="6" cellspacing="0" style="margin-bottom: 30px;">
-    <thead>
-      <tr>
-        <th>IP Address</th>
-        <th>Access Count</th>
-        <th>Timestamps</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for ip, timestamps in ip_group.items() %}
-      <tr>
-        <td>{{ ip }}</td>
-        <td>{{ timestamps|length }}</td>
-        <td>
-          <ul>
-            {% for ts in timestamps %}
-              <li>{{ ts }}</li>
-            {% endfor %}
-          </ul>
-        </td>
-      </tr>
+    {% for channel, entries in grouped_logs.items() %}
+      <h2>{{ channel }}</h2>
+      {% set ip_group = {} %}
+      {% for entry in entries %}
+        {% set ip = entry.ip %}
+        {% if ip not in ip_group %}
+          {% set _ = ip_group.update({ip: []}) %}
+        {% endif %}
+        {% set _ = ip_group[ip].append(entry.timestamp) %}
       {% endfor %}
-    </tbody>
-  </table>
-{% endfor %}
+
+      <table>
+        <thead>
+          <tr>
+            <th>IP Address</th>
+            <th>Access Count</th>
+            <th>First Access</th>
+            <th>Latest Access</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for ip, timestamps in ip_group.items() %}
+          <tr>
+            <td>{{ ip }}</td>
+            <td>{{ timestamps|length }}</td>
+            <td>{{ timestamps|min }}</td>
+            <td>{{ timestamps|max }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% endfor %}
+  </div>
+</body>
+</html>
