@@ -14,7 +14,6 @@ last_update = None
 def stream():
     name = request.args.get("name")
     if not name:
-        print("[ERROR] /stream called without name param")
         return "Missing stream name", 400
 
     ip = request.headers.get('X-Forwarded-For', request.remote_addr).split(',')[0].strip()
@@ -22,12 +21,9 @@ def stream():
     url = get_stream(name)
 
     if url:
-        print(f"[STREAM] Redirecting {ip} (CF: {cf_ip}) to {url}")
         log_access(name, ip, cf_ip)
         return redirect(url)
-    else:
-        print(f"[ERROR] Stream not found for name={name}")
-        return "Stream not found", 404
+    return "Stream not found", 404
 
 @app.route("/dashboard")
 def dashboard():
@@ -68,26 +64,23 @@ def delete():
 @app.route("/logs")
 def logs():
     raw_logs = get_access_log()
-    streams = get_all_streams()
     grouped = {}
 
     for log in raw_logs:
-        name = log.get("channel", "Unknown")
+        channel = log.get("channel", "Unknown")
         ip = log.get("ip", "Unknown")
         cf_ip = log.get("cf_ip", ip)
         timestamp = log.get("timestamp")
-        stream_info = streams.get(name, {})
 
-        if name not in grouped:
-            grouped[name] = {}
+        if channel not in grouped:
+            grouped[channel] = {}
 
-        if ip not in grouped[name]:
-            grouped[name][ip] = []
+        if ip not in grouped[channel]:
+            grouped[channel][ip] = []
 
-        grouped[name][ip].append({
+        grouped[channel][ip].append({
             "timestamp": timestamp,
-            "cf_ip": cf_ip,
-            "stream": stream_info
+            "cf_ip": cf_ip
         })
 
     return render_template("logs.html", grouped_logs=grouped)
