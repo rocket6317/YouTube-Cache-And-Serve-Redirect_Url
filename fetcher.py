@@ -2,12 +2,12 @@ import yt_dlp
 import logging
 from db import update_stream
 from urllib.parse import urlparse, parse_qs
+from datetime import datetime
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
 
 def fetch_info(url):
-    import yt_dlp
     ydl_opts = {
         'quiet': True,
         'skip_download': True,
@@ -17,7 +17,6 @@ def fetch_info(url):
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
         info = ydl.extract_info(url, download=False)
 
-    # ✅ Use the best available stream URL
     stream_url = info.get("url")
     if not stream_url:
         raise Exception("No direct stream URL found")
@@ -56,3 +55,11 @@ def process_channels():
             logger.info(f"[CACHE] {channel_name} cached as {name}")
         except Exception as e:
             logger.error(f"[ERROR] Failed to fetch {url}: {e}")
+
+    # ✅ Save last update timestamp
+    try:
+        with open("timestamps.txt", "w") as f:
+            f.write(datetime.utcnow().isoformat())
+        logger.info(f"[TIMESTAMP] Updated at {datetime.utcnow().isoformat()}")
+    except Exception as e:
+        logger.error(f"[ERROR] Failed to write timestamps.txt: {e}")
