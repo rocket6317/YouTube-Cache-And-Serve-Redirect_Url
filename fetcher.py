@@ -6,18 +6,21 @@ from urllib.parse import urlparse, parse_qs
 logger = logging.getLogger(__name__)
 
 def fetch_info(url):
+    import yt_dlp
     ydl_opts = {
         'quiet': True,
         'skip_download': True,
-        'force_generic_extractor': False,
-        'format': 'bestvideo+bestaudio/best',
-        'extractor_args': {
-            'youtube': ['ejs=enable', 'player_client=web']
-        }
+        'forcejson': True,
+        'extract_flat': False  # ✅ Must be False to get stream URLs
     }
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
         info = ydl.extract_info(url, download=False)
-        return info
+    return {
+        "url": info.get("url"),
+        "m3u8": info.get("url"),  # ✅ Ensure this is set
+        "channel": info.get("channel") or info.get("uploader"),
+        "title": info.get("title")
+    }
 
 def extract_name(url):
     if '@' in url:
