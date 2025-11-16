@@ -25,19 +25,18 @@
     <table>
         <thead>
             <tr>
-                <th>Channel Name</th>
-                <th>Direct .m3u8 URL</th>
-                <th>IPTV Redirect URL</th>
+                <th>Name</th>
+                <th>Display Name</th>
                 <th>Actions</th>
             </tr>
         </thead>
         <tbody>
             {% for name, stream in streams.items() %}
             <tr>
-                <td>{{ stream.channel }}</td>
-                <td><a href="{{ stream.url }}" target="_blank">{{ stream.url }}</a></td>
-                <td><code>{{ request.host_url }}stream?name={{ name }}</code></td>
+                <td>{{ name }}</td>
+                <td>{{ stream.display_name }}</td>
                 <td>
+                    <a href="/stream?name={{ name }}" target="_blank">▶️ Open</a>
                     <form action="/dashboard/delete" method="post" style="display:inline;">
                         <input type="hidden" name="name" value="{{ name }}">
                         <button type="submit">🗑️ Delete</button>
