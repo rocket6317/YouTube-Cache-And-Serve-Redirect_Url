@@ -42,6 +42,9 @@
                         <input type="hidden" name="name" value="{{ name }}">
                         <button type="submit">🗑️ Delete</button>
                     </form>
+                    {% if stream.url.endswith('.m3u8') %}
+                        <a href="{{ stream.url }}" download="{{ name }}.m3u8">⬇️ Download</a>
+                    {% endif %}
                 </td>
             </tr>
             {% endfor %}
