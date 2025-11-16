@@ -43,13 +43,12 @@ def get_stream(name):
         return stream["m3u8"]
     return None
 
-def log_access(name, ip):
+def log_access(name, ip, cf_ip=None):
     db = load_db()
-    channel = db["streams"].get(name, {}).get("channel", name)
-    db["access_log"].append({
-        "name": name,
-        "channel": channel,
+    db.setdefault("logs", []).append({
+        "channel": name,
         "ip": ip,
+        "cf_ip": cf_ip or ip,
         "timestamp": datetime.utcnow().isoformat()
     })
     save_db(db)
