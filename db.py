@@ -10,8 +10,15 @@ def init_db():
             json.dump({"streams": {}, "access_log": []}, f)
 
 def load_db():
+    if not os.path.exists(DB_PATH) or os.stat(DB_PATH).st_size == 0:
+        init_db()
     with open(DB_PATH, 'r') as f:
-        return json.load(f)
+        try:
+            return json.load(f)
+        except json.JSONDecodeError:
+            print("[ERROR] db.json is corrupted or empty. Reinitializing.")
+            init_db()
+            return load_db()
 
 def save_db(db):
     with open(DB_PATH, 'w') as f:
