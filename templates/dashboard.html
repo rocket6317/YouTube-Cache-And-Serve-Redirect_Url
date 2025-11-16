@@ -35,7 +35,7 @@
             {% for name, stream in streams.items() %}
             <tr>
                 <td>{{ stream.channel }}</td>
-                <td><a href="{{ stream.url }}" target="_blank">🔗 Stream</a></td>
+                <td><a href="{{ stream.url }}" target="_blank">{{ stream.url }}</a></td>
                 <td><code>{{ request.host_url }}stream?name={{ name }}</code></td>
                 <td>
                     <a href="/stream?name={{ name }}" target="_blank">▶️ Open</a>
