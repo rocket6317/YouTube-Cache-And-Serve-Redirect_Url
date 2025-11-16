@@ -3,6 +3,7 @@ import logging
 from db import update_stream
 from urllib.parse import urlparse, parse_qs
 from datetime import datetime
+from tinydb import Query
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
