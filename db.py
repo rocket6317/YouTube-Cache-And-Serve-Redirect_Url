@@ -1,36 +1,48 @@
-from tinydb import TinyDB, Query
+import json
 from datetime import datetime
 
-db = TinyDB('db.json')
-streams_table = db.table('streams')
-logs_table = db.table('logs')
+DB_PATH = 'db.json'
+
+def load_db():
+    try:
+        with open(DB_PATH, 'r') as f:
+            return json.load(f)
+    except FileNotFoundError:
+        return {"streams": {}, "logs": []}
+
+def save_db(db):
+    with open(DB_PATH, 'w') as f:
+        json.dump(db, f, indent=2)
 
 def update_stream(name, url, m3u8, channel):
-    streams_table.upsert({
-        'name': name,
-        'url': url,
-        'm3u8': m3u8,
-        'channel': channel,
-        'fetched_at': datetime.utcnow().isoformat()
-    }, Query().name == name)
+    db = load_db()
+    db["streams"][name] = {
+        "url": url,
+        "m3u8": m3u8,
+        "channel": channel
+    }
+    save_db(db)
 
 def delete_stream(name):
-    streams_table.remove(Query().name == name)
+    db = load_db()
+    db["streams"].pop(name, None)
+    save_db(db)
 
 def get_stream(name):
-    result = streams_table.get(Query().name == name)
-    return result['m3u8'] if result else None
+    return load_db()["streams"].get(name, {}).get("m3u8")
 
 def get_all_streams():
-    return {entry['name']: entry for entry in streams_table.all()}
+    return load_db()["streams"]
 
 def log_access(name, ip, cf_ip=None):
-    logs_table.insert({
-        'channel': name,
-        'ip': ip,
-        'cf_ip': cf_ip or ip,
-        'timestamp': datetime.utcnow().isoformat()
+    db = load_db()
+    db.setdefault("logs", []).append({
+        "channel": name,
+        "ip": ip,
+        "cf_ip": cf_ip or ip,
+        "timestamp": datetime.utcnow().isoformat()
     })
+    save_db(db)
 
 def get_access_log():
-    return logs_table.all()
+    return load_db().get("logs", [])
