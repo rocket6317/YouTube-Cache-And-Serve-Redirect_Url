@@ -6,7 +6,7 @@ from db import (
 from fetcher import process_channels, fetch_info, extract_name
 from scheduler import start_scheduler
 
-app = Flask(__name__)
+app = Flask(__name__, static_folder='static')
 
 init_db()
 start_scheduler()
