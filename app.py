@@ -5,6 +5,8 @@ from db import (
 )
 from fetcher import process_channels, fetch_info, extract_name
 from scheduler import start_scheduler
+from config import UPDATE_INTERVAL_HOURS
+from datetime import datetime, timedelta
 
 app = Flask(__name__, static_folder='static')
 
@@ -27,7 +29,24 @@ def stream():
 
 @app.route("/dashboard")
 def dashboard():
-    return render_template("dashboard.html", streams=streams_table())
+    streams = streams_table()
+
+    # Read last update time
+    try:
+        with open("timestamps.txt") as f:
+            last_update = datetime.fromisoformat(f.read().strip())
+    except (FileNotFoundError, ValueError):
+        last_update = None
+
+    # Calculate next update time
+    next_update = last_update + timedelta(hours=UPDATE_INTERVAL_HOURS) if last_update else None
+
+    return render_template(
+        "dashboard.html",
+        streams=streams,
+        last_update=last_update,
+        next_update=next_update
+    )
 
 @app.route("/logs")
 def logs():
