@@ -76,15 +76,19 @@
           <thead>
             <tr>
               <th>IP Address</th>
+              <th>Cloudflare IP</th>
               <th>Access Count</th>
               <th>First Access</th>
               <th>Latest Access</th>
             </tr>
           </thead>
           <tbody>
-            {% for ip, timestamps in ip_group.items() %}
+            {% for ip, entries in ip_group.items() %}
+              {% set cf_ip = entries[0].cf_ip if entries[0].cf_ip is defined else ip %}
+              {% set timestamps = entries | map(attribute='timestamp') | list %}
               <tr>
                 <td>{{ ip }}</td>
+                <td>{{ cf_ip }}</td>
                 <td>{{ timestamps|length }}</td>
                 <td>{{ timestamps|min }}</td>
                 <td>{{ timestamps|max }}</td>
