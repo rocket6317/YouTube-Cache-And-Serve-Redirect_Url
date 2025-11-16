@@ -39,11 +39,8 @@ def delete_stream(name):
 
 def get_stream(name):
     stream = load_db()["streams"].get(name)
-    if stream and "url" in stream:
-        url = stream["url"]
-        if "watch?v=" in url:
-            return url.replace("watch?v=", "embed/") + "?autoplay=1"
-        return url
+    if stream and "m3u8" in stream:
+        return stream["m3u8"]
     return None
 
 def log_access(name, ip):
