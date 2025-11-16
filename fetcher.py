@@ -3,17 +3,27 @@ import logging
 from db import update_stream
 from urllib.parse import urlparse, parse_qs
 from datetime import datetime
-from tinydb import Query
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
 
 def fetch_info(url):
-    with yt_dlp.YoutubeDL({'quiet': True}) as ydl:
+    ydl_opts = {
+        'quiet': True,
+        'skip_download': True,
+        'extract_flat': False,
+        'forcejson': True
+    }
+    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
         info = ydl.extract_info(url, download=False)
 
+    stream_url = info.get("url")
+    if not stream_url:
+        raise Exception("No direct stream URL found")
+
     return {
-        "url": info.get("url"),
+        "url": stream_url,
+        "m3u8": stream_url,
         "channel": info.get("channel") or info.get("uploader"),
         "title": info.get("title")
     }
