@@ -9,7 +9,6 @@ from scheduler import start_scheduler
 app = Flask(__name__)
 
 init_db()
-process_channels()
 start_scheduler()
 
 @app.route("/")
@@ -55,7 +54,7 @@ def add():
             m3u8 = info.get("url")
             channel_name = info.get("channel") or info.get("uploader") or name
             update_stream(name, url, m3u8, channel_name)
-        except Exception:
-            pass
+        except Exception as e:
+            print(f"[ERROR] Failed to add stream {url}: {e}")
         return redirect("/dashboard")
     return render_template("add.html")
