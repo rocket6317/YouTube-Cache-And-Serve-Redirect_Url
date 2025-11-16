@@ -28,17 +28,16 @@ def extract_name(url):
     else:
         return "unknown"
 
-def process_channels(file_path='channels.txt'):
-    with open(file_path, 'r') as f:
-        for line in f:
-            url = line.strip()
-            if url:
-                name = extract_name(url)
-                try:
-                    info = fetch_info(url)
-                    m3u8 = info.get('url')
-                    channel_name = info.get('channel') or info.get('uploader') or name
-                    update_stream(name, url, m3u8, channel_name)
-                    logger.info(f"[CACHE] {channel_name} updated")
-                except Exception as e:
-                    logger.warning(f"[ERROR] Failed to cache {name}: {e}")
+def process_channels():
+    with open("channels.txt") as f:
+        urls = [line.strip() for line in f if line.strip()]
+    for url in urls:
+        name = extract_name(url)
+        try:
+            info = fetch_info(url)
+            m3u8 = info.get("url")
+            channel_name = info.get("channel") or info.get("uploader") or name
+            update_stream(name, url, m3u8, channel_name)
+            print(f"[CACHE] {channel_name} cached as {name}")
+        except Exception as e:
+            print(f"[ERROR] Failed to fetch {url}: {e}")
