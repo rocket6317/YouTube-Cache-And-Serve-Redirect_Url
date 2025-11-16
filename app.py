@@ -50,7 +50,23 @@ def dashboard():
 
 @app.route("/logs")
 def logs():
-    return render_template("logs.html", logs=get_access_log())
+    raw_logs = get_access_log()
+    grouped = {}
+
+    for log in raw_logs:
+        channel = log.get("channel", "Unknown")
+        ip = log.get("ip")
+        timestamp = log.get("timestamp")
+
+        if channel not in grouped:
+            grouped[channel] = {}
+
+        if ip not in grouped[channel]:
+            grouped[channel][ip] = []
+
+        grouped[channel][ip].append(timestamp)
+
+    return render_template("logs.html", grouped_logs=grouped)
 
 @app.route("/dashboard/delete", methods=["POST"])
 def delete():
