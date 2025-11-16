@@ -66,6 +66,7 @@ def logs():
         if ip not in grouped[channel]:
             grouped[channel][ip] = []
 
+        # Store full entry, not just timestamp
         grouped[channel][ip].append({
             "timestamp": timestamp,
             "cf_ip": cf_ip
