@@ -17,18 +17,15 @@ def fetch_info(url):
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
         info = ydl.extract_info(url, download=False)
 
-    # ✅ Extract actual .m3u8 URL
     m3u8_url = None
     for f in info.get("formats", []):
         if f.get("protocol") == "m3u8":
             m3u8_url = f.get("url")
             break
 
-    if not m3u8_url:
-        raise Exception("No .m3u8 stream found")
-
     return {
-        "url": m3u8_url,  # now this is the real .m3u8
+        "source_url": url,
+        "url": m3u8_url or info.get("url"),  # fallback
         "channel": info.get("channel") or info.get("uploader"),
         "title": info.get("title")
     }
