@@ -1,14 +1,23 @@
 import json
-from datetime import datetime
+import os
+from datetime import datetime, timedelta
 
-DB_PATH = 'db.json'
+DB_PATH = "db.json"
+
+def init_db():
+    with open(DB_PATH, 'w') as f:
+        json.dump({"streams": {}, "access_log": []}, f)
 
 def load_db():
-    try:
-        with open(DB_PATH, 'r') as f:
+    if not os.path.exists(DB_PATH) or os.stat(DB_PATH).st_size == 0:
+        init_db()
+    with open(DB_PATH, 'r') as f:
+        try:
             return json.load(f)
-    except FileNotFoundError:
-        return {"streams": {}, "logs": []}
+        except json.JSONDecodeError:
+            print("[ERROR] db.json is corrupted or empty. Reinitializing.")
+            init_db()
+            return load_db()
 
 def save_db(db):
     with open(DB_PATH, 'w') as f:
@@ -29,20 +38,33 @@ def delete_stream(name):
     save_db(db)
 
 def get_stream(name):
-    return load_db()["streams"].get(name, {}).get("m3u8")
+    stream = load_db()["streams"].get(name)
+    if stream and "m3u8" in stream:
+        return stream["m3u8"]
+    return None
 
-def get_all_streams():
-    return load_db()["streams"]
-
-def log_access(name, ip, cf_ip=None):
+def log_access(name, ip):
     db = load_db()
-    db.setdefault("logs", []).append({
-        "channel": name,
+    channel = db["streams"].get(name, {}).get("channel", name)
+    db["access_log"].append({
+        "name": name,
+        "channel": channel,
         "ip": ip,
-        "cf_ip": cf_ip or ip,
         "timestamp": datetime.utcnow().isoformat()
     })
     save_db(db)
 
 def get_access_log():
-    return load_db().get("logs", [])
+    return load_db().get("access_log", [])
+
+def streams_table():
+    return load_db().get("streams", {})
+
+def prune_old_logs(days=7):
+    db = load_db()
+    cutoff = datetime.utcnow() - timedelta(days=days)
+    db["access_log"] = [
+        log for log in db.get("access_log", [])
+        if datetime.fromisoformat(log["timestamp"]) > cutoff
+    ]
+    save_db(db)
