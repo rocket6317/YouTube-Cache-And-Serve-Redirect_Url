@@ -4,20 +4,31 @@ from db import update_stream
 from urllib.parse import urlparse, parse_qs
 
 logger = logging.getLogger(__name__)
+logging.basicConfig(level=logging.INFO)
 
 def fetch_info(url):
-    import yt_dlp
     ydl_opts = {
         'quiet': True,
         'skip_download': True,
-        'forcejson': True,
-        'extract_flat': False  # ✅ Must be False to get stream URLs
+        'extract_flat': False,
+        'forcejson': True
     }
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
         info = ydl.extract_info(url, download=False)
+
+    # Try to get a playable stream URL
+    stream_url = None
+    formats = info.get("formats", [])
+    for f in formats:
+        if f.get("ext") == "mp4" and f.get("url"):
+            stream_url = f["url"]
+            break
+    if not stream_url:
+        stream_url = info.get("url")  # fallback
+
     return {
-        "url": info.get("url"),
-        "m3u8": info.get("url"),  # ✅ Ensure this is set
+        "url": stream_url,
+        "m3u8": stream_url,
         "channel": info.get("channel") or info.get("uploader"),
         "title": info.get("title")
     }
@@ -36,16 +47,16 @@ def process_channels():
         with open("channels.txt") as f:
             urls = [line.strip() for line in f if line.strip()]
     except Exception as e:
-        print(f"[ERROR] Failed to read channels.txt: {e}")
+        logger.error(f"Failed to read channels.txt: {e}")
         return
 
     for url in urls:
         name = extract_name(url)
         try:
             info = fetch_info(url)
-            m3u8 = info.get("url")
-            channel_name = info.get("channel") or info.get("uploader") or name
+            m3u8 = info.get("m3u8")
+            channel_name = info.get("channel") or name
             update_stream(name, url, m3u8, channel_name)
-            print(f"[CACHE] {channel_name} cached as {name}")
+            logger.info(f"[CACHE] {channel_name} cached as {name}")
         except Exception as e:
-            print(f"[ERROR] Failed to fetch {url}: {e}")
+            logger.error(f"[ERROR] Failed to fetch {url}: {e}")
