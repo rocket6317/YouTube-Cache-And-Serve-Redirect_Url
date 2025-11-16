@@ -7,6 +7,13 @@
 <body>
     <h1>Stream Dashboard</h1>
 
+    {% if last_update %}
+        <p><strong>Last Update:</strong> {{ last_update.strftime('%Y-%m-%d %H:%M:%S') }} UTC</p>
+        <p><strong>Next Update:</strong> {{ next_update.strftime('%Y-%m-%d %H:%M:%S') }} UTC</p>
+    {% else %}
+        <p><em>Update time not available yet.</em></p>
+    {% endif %}
+
     <form action="/dashboard/refresh" method="post">
         <button type="submit">🔄 Refresh Streams</button>
     </form>
