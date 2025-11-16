@@ -8,24 +8,11 @@ logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
 
 def fetch_info(url):
-    ydl_opts = {
-        'quiet': True,
-        'skip_download': True,
-        'extract_flat': False,
-        'forcejson': True
-    }
-    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+    with yt_dlp.YoutubeDL({'quiet': True}) as ydl:
         info = ydl.extract_info(url, download=False)
 
-    m3u8_url = None
-    for f in info.get("formats", []):
-        if f.get("protocol") == "m3u8":
-            m3u8_url = f.get("url")
-            break
-
     return {
-        "source_url": url,
-        "url": m3u8_url or info.get("url"),  # fallback
+        "url": info.get("url"),
         "channel": info.get("channel") or info.get("uploader"),
         "title": info.get("title")
     }
