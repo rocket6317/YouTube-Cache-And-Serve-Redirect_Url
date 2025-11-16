@@ -7,27 +7,41 @@
   {% set _ = grouped_logs[channel].append(log) %}
 {% endfor %}
 
+<h2>Access Logs by Channel</h2>
+
 {% for channel, entries in grouped_logs.items() %}
-  <h3>{{ channel }} ({{ entries|length }} accesses)</h3>
-  <table>
-    <tr>
-      <th>IP Address (Total)</th>
-      <th>Timestamp</th>
-    </tr>
-    {% set ip_counts = {} %}
-    {% for entry in entries %}
-      {% set ip = entry.ip %}
-      {% if ip in ip_counts %}
-        {% set _ = ip_counts.update({ip: ip_counts[ip] + 1}) %}
-      {% else %}
-        {% set _ = ip_counts.update({ip: 1}) %}
-      {% endif %}
-    {% endfor %}
-    {% for entry in entries %}
-    <tr>
-      <td>{{ entry.ip }} ({{ ip_counts[entry.ip] }})</td>
-      <td>{{ entry.timestamp }}</td>
-    </tr>
-    {% endfor %}
+  <h3>{{ channel }}</h3>
+  {% set ip_group = {} %}
+  {% for entry in entries %}
+    {% set ip = entry.ip %}
+    {% if ip not in ip_group %}
+      {% set _ = ip_group.update({ip: []}) %}
+    {% endif %}
+    {% set _ = ip_group[ip].append(entry.timestamp) %}
+  {% endfor %}
+
+  <table border="1" cellpadding="6" cellspacing="0" style="margin-bottom: 30px;">
+    <thead>
+      <tr>
+        <th>IP Address</th>
+        <th>Access Count</th>
+        <th>Timestamps</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for ip, timestamps in ip_group.items() %}
+      <tr>
+        <td>{{ ip }}</td>
+        <td>{{ timestamps|length }}</td>
+        <td>
+          <ul>
+            {% for ts in timestamps %}
+              <li>{{ ts }}</li>
+            {% endfor %}
+          </ul>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
   </table>
 {% endfor %}
