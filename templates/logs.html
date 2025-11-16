@@ -1,11 +1,10 @@
 {% set grouped_logs = {} %}
 {% for log in logs %}
-  {% if log.channel in grouped_logs %}
-    {% set _ = grouped_logs[log.channel].append(log) %}
-  {% else %}
-    {% set grouped_logs = grouped_logs.copy() %}
-    {% set _ = grouped_logs.update({log.channel: [log]}) %}
+  {% set channel = log.channel %}
+  {% if channel not in grouped_logs %}
+    {% set _ = grouped_logs.update({channel: []}) %}
   {% endif %}
+  {% set _ = grouped_logs[channel].append(log) %}
 {% endfor %}
 
 {% for channel, entries in grouped_logs.items() %}
@@ -17,7 +16,12 @@
     </tr>
     {% set ip_counts = {} %}
     {% for entry in entries %}
-      {% set ip_counts = ip_counts.update({entry.ip: ip_counts.get(entry.ip, 0) + 1}) or ip_counts %}
+      {% set ip = entry.ip %}
+      {% if ip in ip_counts %}
+        {% set _ = ip_counts.update({ip: ip_counts[ip] + 1}) %}
+      {% else %}
+        {% set _ = ip_counts.update({ip: 1}) %}
+      {% endif %}
     {% endfor %}
     {% for entry in entries %}
     <tr>
