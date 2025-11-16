@@ -23,14 +23,14 @@ def save_db(db):
     with open(DB_PATH, 'w') as f:
         json.dump(db, f, indent=2)
 
-def update_stream(name, source_url, stream_url, channel):
-    Stream = Query()
-    streams.update({
-        "url": stream_url,
-        "source_url": source_url,
-        "channel": channel,
-        "timestamp": datetime.utcnow().isoformat()
-    }, Stream.name == name)
+def update_stream(name, url, m3u8, channel):
+    db = load_db()
+    db["streams"][name] = {
+        "url": url,
+        "m3u8": m3u8,
+        "channel": channel
+    }
+    save_db(db)
 
 def delete_stream(name):
     db = load_db()
