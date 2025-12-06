@@ -36,8 +36,8 @@
             <tr>
                 <td>{{ stream.channel }}</td>
                 <td><a href="{{ stream.url }}" target="_blank">{{ stream.url }}</a></td>
-                <!-- Force https in display -->
-                <td><code>https://{{ request.host }}stream?name={{ name }}</code></td>
+                <!-- Corrected: force https and add missing slash -->
+                <td><code>https://{{ request.host }}/stream?name={{ name }}</code></td>
                 <td>
                     <form action="/dashboard/delete" method="post" style="display:inline;">
                         <input type="hidden" name="name" value="{{ name }}">
