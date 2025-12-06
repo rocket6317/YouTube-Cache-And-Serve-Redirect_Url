@@ -34,8 +34,8 @@ cd youtube-redirector
 
 
 2. Add Your Channels
-Edit channels.txt and add one YouTube livestream URL per line:
-
+Go to dashboard URL (http://localhost:6095/dashboard) and click Add button to add your first stream. Note that channels.txt is not used anymore. Name is will be name of the stream, the part you will use after https://yourdomain.com:6095/stream?name=the_name_you_have_chosen_while_adding_the_stream
+ 
 https://www.youtube.com/@channelname/live
 https://www.youtube.com/watch?v=VIDEO_ID
 
@@ -47,7 +47,7 @@ The app will be available at: http://localhost:6095/dashboard
 🖥️ Dashboard
 
 •  🔄 Refresh Now: Manually refresh all stream links
-•  ➕ Add New Stream: Append a new YouTube livestream to channels.txt and refresh
+•  ➕ Add New Stream: Append a new YouTube livestream (Starts empty so don't forget to add channels after successful launch)
 •  📊 View Access Logs: See IP-based access counts and timestamps
 •  🗑️ Delete: Remove a stream from the cache
 
