@@ -82,12 +82,13 @@
             </tr>
           </thead>
           <tbody>
-            {% for ip, timestamps in ip_group.items() %}
+            {% for ip, entries in ip_group.items() %}
+              {% set timestamps = entries | map(attribute='timestamp') | list %}
               <tr>
                 <td>{{ ip }}</td>
-                <td>{{ timestamps|length }}</td>
-                <td>{{ timestamps|min }}</td>
-                <td>{{ timestamps|max }}</td>
+                <td>{{ timestamps | length }}</td>
+                <td>{{ timestamps | min }}</td>
+                <td>{{ timestamps | max }}</td>
               </tr>
             {% endfor %}
           </tbody>
