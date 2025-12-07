@@ -9,9 +9,11 @@
 
     {% if last_update %}
         <p><strong>Last Update:</strong> {{ last_update.strftime('%Y-%m-%d %H:%M:%S') }} UTC</p>
+        {% if next_update %}
         <p><strong>Next Update:</strong> {{ next_update.strftime('%Y-%m-%d %H:%M:%S') }} UTC</p>
+        {% endif %}
     {% else %}
-        <p><em>Update time not available yet.</em></p>
+        <p><em>Auto-refresh is running in the background.</em></p>
     {% endif %}
 
     <form action="/dashboard/refresh" method="post">
@@ -36,7 +38,7 @@
             <tr>
                 <td>{{ stream.channel }}</td>
                 <td><a href="{{ stream.url }}" target="_blank">{{ stream.url }}</a></td>
-                <!-- Corrected: force https and add missing slash -->
+                <!-- Force https and correct slash -->
                 <td><code>https://{{ request.host }}/stream?name={{ name }}</code></td>
                 <td>
                     <form action="/dashboard/delete" method="post" style="display:inline;">
