@@ -1,18 +1,17 @@
 from flask import Flask, request, redirect, render_template, url_for
-from datetime import timedelta
+from datetime import datetime, timedelta
 from db import (
     get_stream, streams_table, update_stream, delete_stream,
     log_access, get_access_log,
-    read_channels_file, write_channels_file
+    read_channels_file, write_channels_file, load_db
 )
 from fetcher import fetch_info
-import scheduler
 from scheduler import start_scheduler
 from config import UPDATE_INTERVAL_HOURS
 
 app = Flask(__name__)
 
-# Start scheduler (initial refresh + periodic jobs)
+# Start scheduler once (master process)
 start_scheduler()
 
 @app.route("/stream")
@@ -32,9 +31,15 @@ def stream():
 @app.route("/dashboard")
 def dashboard():
     streams = streams_table()
-    lu = scheduler.last_update
-    nu = (lu + timedelta(hours=UPDATE_INTERVAL_HOURS)) if lu else None
-    return render_template("dashboard.html", streams=streams, last_update=lu, next_update=nu)
+    db = load_db()
+    lu = db.get("last_update")
+    nu = None
+    if lu:
+        lu_dt = datetime.fromisoformat(lu)
+        nu = lu_dt + timedelta(hours=UPDATE_INTERVAL_HOURS)
+    return render_template("dashboard.html", streams=streams,
+                           last_update=lu_dt if lu else None,
+                           next_update=nu)
 
 @app.route("/dashboard/refresh", methods=["POST"])
 def refresh():
@@ -45,6 +50,11 @@ def refresh():
             update_stream(name, url, info.get("m3u8"), info.get("channel"))
         else:
             update_stream(name, url, None, None)
+
+    db = load_db()
+    db["last_update"] = datetime.utcnow().isoformat()
+    save_db(db)
+
     return redirect(url_for("dashboard"))
 
 @app.route("/dashboard/add", methods=["GET", "POST"])
