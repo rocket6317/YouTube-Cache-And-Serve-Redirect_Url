@@ -122,3 +122,8 @@ def logs():
 
     logger.info("Logs accessed")
     return render_template("logs.html", grouped_logs=grouped)
+
+@app.route("/health")
+def health():
+    # Simple healthcheck endpoint for Docker/Portainer
+    return "OK", 200
