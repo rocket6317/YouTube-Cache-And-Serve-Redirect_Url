@@ -7,8 +7,12 @@ from db import (
 )
 from fetcher import fetch_info
 from config import UPDATE_INTERVAL_HOURS
+from scheduler import start_scheduler
 
 app = Flask(__name__)
+
+# Start scheduler when app is imported by Gunicorn (single worker)
+start_scheduler()
 
 @app.route("/stream")
 def stream():
