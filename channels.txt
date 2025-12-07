@@ -1,5 +1,5 @@
 sozcutv,https://www.youtube.com/@Sozcutelevizyonu/live
 kizilcikserbeti,https://www.youtube.com/@kizilcikserbetidizi/live
-tomorrowlandowr|https://www.youtube.com/watch?v=325m8PqVH74
-sen|https://www.youtube.com/watch?v=fO9e9jnhYK8
-earthtv|https://www.youtube.com/watch?v=HfgIFGbdGJ0
+tomorrowlandowr,https://www.youtube.com/watch?v=325m8PqVH74
+sen,https://www.youtube.com/watch?v=fO9e9jnhYK8
+earthtv,https://www.youtube.com/watch?v=HfgIFGbdGJ0
