@@ -1,43 +1,66 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Dashboard</title>
+    <title>Stream Dashboard</title>
     <style>
         .action-buttons {
             display: flex;
             gap: 10px;
             margin-bottom: 20px;
         }
+        button {
+            background-color: #007BFF; /* Bootstrap blue */
+            color: white;
+            border: none;
+            padding: 8px 14px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        table {
+            border-collapse: collapse;
+            width: 100%;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
     </style>
 </head>
 <body>
-    <h1>Stream Dashboard</h1>
+    <h1>📺 Stream Dashboard</h1>
 
     <div class="action-buttons">
         <!-- Add Channel -->
         <form action="{{ url_for('add') }}" method="get">
-            <button type="submit">Add Channel</button>
+            <button type="submit">➕ Add Channel</button>
         </form>
 
         <!-- Refresh -->
         <form action="{{ url_for('refresh') }}" method="post">
-            <button type="submit">Refresh</button>
+            <button type="submit">🔄 Refresh</button>
         </form>
 
         <!-- Download channels.txt -->
         <form action="{{ url_for('download_channels') }}" method="get">
-            <button type="submit">Download channels.txt</button>
+            <button type="submit">⬇️ Download channels.txt</button>
         </form>
 
         <!-- View Access Logs -->
         <form action="{{ url_for('logs') }}" method="get">
-            <button type="submit">View Access Logs</button>
+            <button type="submit">📜 View Access Logs</button>
         </form>
     </div>
 
     <p>Last update: {{ last_update }} | Next update: {{ next_update }}</p>
 
-    <table border="1">
+    <table>
         <tr>
             <th>Name</th>
             <th>Channel</th>
@@ -46,13 +69,13 @@
         </tr>
         {% for stream in streams %}
         <tr>
-            <td>{{ stream.name }}</td>
-            <td>{{ stream.channel }}</td>
-            <td>{{ stream.m3u8 }}</td>
+            <td>{{ stream['name'] }}</td>
+            <td>{{ stream['channel'] }}</td>
+            <td>{{ stream['m3u8'] }}</td>
             <td>
                 <form action="{{ url_for('delete') }}" method="post" style="display:inline;">
-                    <input type="hidden" name="name" value="{{ stream.name }}">
-                    <button type="submit">Delete</button>
+                    <input type="hidden" name="name" value="{{ stream['name'] }}">
+                    <button type="submit">🗑️ Delete</button>
                 </form>
             </td>
         </tr>
