@@ -13,7 +13,7 @@
         <p><strong>Next Update:</strong> {{ next_update.strftime('%Y-%m-%d %H:%M:%S') }} UTC</p>
         {% endif %}
     {% else %}
-        <p><em>Auto-refresh is running in the background.</em></p>
+        <p><em>Update time not available yet.</em></p>
     {% endif %}
 
     <form action="/dashboard/refresh" method="post">
@@ -37,23 +37,4 @@
             {% for name, stream in streams.items() %}
             <tr>
                 <td>{{ stream.channel }}</td>
-                <td><a href="{{ stream.url }}" target="_blank">{{ stream.url }}</a></td>
-                <!-- Force https and correct slash -->
-                <td><code>https://{{ request.host }}/stream?name={{ name }}</code></td>
-                <td>
-                    <form action="/dashboard/delete" method="post" style="display:inline;">
-                        <input type="hidden" name="name" value="{{ name }}">
-                        <button type="submit">🗑️ Delete</button>
-                    </form>
-                    {% if stream.m3u8 %}
-                        <a href="{{ stream.m3u8 }}" download="{{ name }}.m3u8" style="margin-left:10px;">⬇️ Download</a>
-                    {% endif %}
-                </td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-
-    <p><a href="/logs">📊 View Access Logs</a></p>
-</body>
-</html>
+                <td><a href="{{
