@@ -14,7 +14,7 @@ RUN curl -fsSL https://deno.land/install.sh | sh && \
 # Tell yt-dlp to use external JS runtime
 ENV YTDLP_EXTERNAL_JS=1
 
-# Copy project files
+# Copy project files (including channels.txt and db.json)
 COPY . .
 
 # Python dependencies
