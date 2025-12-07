@@ -1,42 +1,64 @@
 <!DOCTYPE html>
 <html>
 <head>
+    <meta charset="utf-8">
     <title>Stream Dashboard</title>
     <style>
-        .action-buttons {
+        body {
+            font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, "Helvetica Neue", Arial, "Noto Sans", sans-serif;
+            margin: 20px;
+        }
+        .action-bar {
             display: flex;
+            flex-wrap: wrap;
             gap: 10px;
             margin-bottom: 20px;
+            align-items: center;
         }
         button {
-            background-color: #007BFF; /* Bootstrap blue */
-            color: white;
+            background-color: #007BFF; /* Blue */
+            color: #fff;
             border: none;
             padding: 8px 14px;
-            border-radius: 4px;
+            border-radius: 6px;
             cursor: pointer;
             font-size: 14px;
         }
         button:hover {
             background-color: #0056b3;
         }
+        .meta {
+            margin-bottom: 16px;
+            color: #333;
+        }
         table {
             border-collapse: collapse;
             width: 100%;
+            table-layout: fixed;
         }
         th, td {
-            border: 1px solid #ddd;
-            padding: 8px;
+            border: 1px solid #e3e3e3;
+            padding: 10px;
+            word-wrap: break-word;
         }
         th {
-            background-color: #f2f2f2;
+            background-color: #f7f7f7;
+            text-align: left;
+        }
+        .empty {
+            padding: 16px;
+            background: #fff8e1;
+            border: 1px solid #ffe082;
+            border-radius: 6px;
+            color: #5d4b00;
+            margin-top: 10px;
         }
     </style>
 </head>
 <body>
     <h1>📺 Stream Dashboard</h1>
 
-    <div class="action-buttons">
+    <div class="action-bar">
         <!-- Add Channel -->
         <form action="{{ url_for('add') }}" method="get">
             <button type="submit">➕ Add Channel</button>
@@ -58,28 +80,41 @@
         </form>
     </div>
 
-    <p>Last update: {{ last_update }} | Next update: {{ next_update }}</p>
+    <div class="meta">
+        Last update: {{ last_update if last_update else '—' }} |
+        Next update: {{ next_update if next_update else '—' }}
+    </div>
 
+    {% if streams and streams|length > 0 %}
     <table>
-        <tr>
-            <th>Name</th>
-            <th>Channel</th>
-            <th>Stream URL</th>
-            <th>Actions</th>
-        </tr>
-        {% for stream in streams %}
-        <tr>
-            <td>{{ stream['name'] }}</td>
-            <td>{{ stream['channel'] }}</td>
-            <td>{{ stream['m3u8'] }}</td>
-            <td>
-                <form action="{{ url_for('delete') }}" method="post" style="display:inline;">
-                    <input type="hidden" name="name" value="{{ stream['name'] }}">
-                    <button type="submit">🗑️ Delete</button>
-                </form>
-            </td>
-        </tr>
-        {% endfor %}
+        <thead>
+            <tr>
+                <th style="width: 20%;">Name</th>
+                <th style="width: 25%;">Channel</th>
+                <th style="width: 45%;">Stream URL</th>
+                <th style="width: 10%;">Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for stream in streams %}
+            <tr>
+                <td>{{ stream.name or stream['name'] }}</td>
+                <td>{{ stream.channel or stream['channel'] }}</td>
+                <td>{{ stream.m3u8 or stream['m3u8'] }}</td>
+                <td>
+                    <form action="{{ url_for('delete') }}" method="post" style="display:inline;">
+                        <input type="hidden" name="name" value="{{ stream.name or stream['name'] }}">
+                        <button type="submit">🗑️ Delete</button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
     </table>
+    {% else %}
+    <div class="empty">
+        No streams found. Click “➕ Add Channel” to create one, or “🔄 Refresh” to reload from channels.txt.
+    </div>
+    {% endif %}
 </body>
 </html>
