@@ -9,11 +9,3 @@ services:
     restart: unless-stopped
     environment:
       - YTDLP_EXTERNAL_JS=1
-
-  youtube-scheduler:
-    build: .
-    container_name: youtube-scheduler
-    restart: unless-stopped
-    environment:
-      - YTDLP_EXTERNAL_JS=1
-    command: python -c "import scheduler; scheduler.start_scheduler()"
