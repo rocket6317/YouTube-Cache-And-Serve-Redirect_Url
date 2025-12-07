@@ -10,7 +10,7 @@ services:
     environment:
       - YTDLP_EXTERNAL_JS=1
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:6095/dashboard"]
+      test: ["CMD", "curl", "-f", "http://localhost:6095/health"]
       interval: 30s
       timeout: 10s
       retries: 3
