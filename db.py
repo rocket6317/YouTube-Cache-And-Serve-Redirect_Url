@@ -81,20 +81,30 @@ def streams_table():
 # --- logging ---
 
 def log_access(name, ip):
+    """Record an access event with channel, IP, timestamp, and m3u8."""
     db = load_db()
-    channel = db["streams"].get(name, {}).get("channel", name)
+    stream = db.get("streams", {}).get(name, {})
+    channel = stream.get("channel", name)
+    m3u8 = stream.get("m3u8")
+
+    if "access_log" not in db:
+        db["access_log"] = []
+
     db["access_log"].append({
         "name": name,
         "channel": channel,
         "ip": ip,
-        "timestamp": datetime.utcnow().isoformat()
+        "timestamp": datetime.utcnow().isoformat(),
+        "m3u8": m3u8
     })
     save_db(db)
 
 def get_access_log():
+    """Return the list of access log entries."""
     return load_db().get("access_log", [])
 
 def prune_old_logs(days=7):
+    """Remove log entries older than N days."""
     db = load_db()
     cutoff = datetime.utcnow() - timedelta(days=days)
     db["access_log"] = [
