@@ -16,7 +16,7 @@
             align-items: center;
         }
         button {
-            background-color: #007BFF; /* Blue */
+            background-color: #007BFF;
             color: #fff;
             border: none;
             padding: 8px 14px;
@@ -27,10 +27,6 @@
         button:hover {
             background-color: #0056b3;
         }
-        .meta {
-            margin-bottom: 16px;
-            color: #333;
-        }
         table {
             border-collapse: collapse;
             width: 100%;
@@ -40,10 +36,10 @@
             border: 1px solid #e3e3e3;
             padding: 10px;
             word-wrap: break-word;
+            text-align: left;
         }
         th {
             background-color: #f7f7f7;
-            text-align: left;
         }
         .empty {
             padding: 16px;
@@ -59,31 +55,22 @@
     <h1>📺 Stream Dashboard</h1>
 
     <div class="action-bar">
-        <!-- Add Channel -->
         <form action="{{ url_for('add') }}" method="get">
             <button type="submit">➕ Add Channel</button>
         </form>
-
-        <!-- Refresh -->
         <form action="{{ url_for('refresh') }}" method="post">
             <button type="submit">🔄 Refresh</button>
         </form>
-
-        <!-- Download channels.txt -->
         <form action="{{ url_for('download_channels') }}" method="get">
             <button type="submit">⬇️ Download channels.txt</button>
         </form>
-
-        <!-- View Access Logs -->
         <form action="{{ url_for('logs') }}" method="get">
             <button type="submit">📜 View Access Logs</button>
         </form>
     </div>
 
-    <div class="meta">
-        Last update: {{ last_update if last_update else '—' }} |
-        Next update: {{ next_update if next_update else '—' }}
-    </div>
+    <p>Last update: {{ last_update if last_update else '—' }} |
+       Next update: {{ next_update if next_update else '—' }}</p>
 
     {% if streams and streams|length > 0 %}
     <table>
@@ -98,12 +85,12 @@
         <tbody>
             {% for stream in streams %}
             <tr>
-                <td>{{ stream.name or stream['name'] }}</td>
-                <td>{{ stream.channel or stream['channel'] }}</td>
-                <td>{{ stream.m3u8 or stream['m3u8'] }}</td>
+                <td>{{ stream['name']|default('—') }}</td>
+                <td>{{ stream['channel']|default('—') }}</td>
+                <td>{{ stream['m3u8']|default('—') }}</td>
                 <td>
                     <form action="{{ url_for('delete') }}" method="post" style="display:inline;">
-                        <input type="hidden" name="name" value="{{ stream.name or stream['name'] }}">
+                        <input type="hidden" name="name" value="{{ stream['name']|default('') }}">
                         <button type="submit">🗑️ Delete</button>
                     </form>
                 </td>
