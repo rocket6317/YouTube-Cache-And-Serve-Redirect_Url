@@ -6,14 +6,9 @@ from db import (
     read_channels_file, write_channels_file, load_db, save_db
 )
 from fetcher import fetch_info
-import scheduler
 from config import UPDATE_INTERVAL_HOURS
 
 app = Flask(__name__)
-
-# Only start scheduler if running as the main process (not imported by Gunicorn workers)
-if __name__ == "__main__":
-    scheduler.start_scheduler()
 
 @app.route("/stream")
 def stream():
