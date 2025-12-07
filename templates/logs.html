@@ -21,7 +21,6 @@
             <thead>
                 <tr>
                     <th>Client IP</th>
-                    <th>Local Handle(s)</th>
                     <th>Access Count</th>
                     <th>First Access</th>
                     <th>Last Access</th>
@@ -31,12 +30,6 @@
                 {% for ip, entries in by_ip.items() %}
                 <tr>
                     <td>{{ ip }}</td>
-                    <td>
-                        {# show all handles used by this IP for this channel #}
-                        {% for entry in entries %}
-                            {{ entry.name }}{% if not loop.last %}, {% endif %}
-                        {% endfor %}
-                    </td>
                     <td>{{ entries|length }}</td>
                     <td>{{ entries[0].timestamp }}</td>
                     <td>{{ entries[-1].timestamp }}</td>
