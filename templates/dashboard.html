@@ -50,6 +50,21 @@
             margin-top: 10px;
         }
     </style>
+    <script>
+        function copyToClipboard(text) {
+            navigator.clipboard.writeText(text).then(() => {
+                alert("Copied to clipboard!");
+            });
+        }
+        function downloadM3U8(name, url) {
+            const blob = new Blob([url], { type: "application/vnd.apple.mpegurl" });
+            const link = document.createElement("a");
+            link.href = URL.createObjectURL(blob);
+            link.download = name + ".m3u8";
+            link.click();
+            URL.revokeObjectURL(link.href);
+        }
+    </script>
 </head>
 <body>
     <h1>📺 Stream Dashboard</h1>
@@ -76,19 +91,25 @@
     <table>
         <thead>
             <tr>
-                <th style="width: 20%;">Name</th>
-                <th style="width: 25%;">Channel</th>
-                <th style="width: 45%;">Stream URL</th>
+                <th style="width: 15%;">Local Handle</th>
+                <th style="width: 20%;">Channel</th>
+                <th style="width: 25%;">Stream URL</th>
+                <th style="width: 20%;">IPTV Local URL</th>
+                <th style="width: 10%;">Redirect URL</th>
                 <th style="width: 10%;">Actions</th>
             </tr>
         </thead>
         <tbody>
-            {# streams_table() returns a dict: {name: {url, m3u8, channel}} #}
             {% for name, data in streams.items() %}
             <tr>
                 <td>{{ name }}</td>
                 <td>{{ data.get('channel', '—') }}</td>
-                <td>{{ data.get('m3u8', '—') }}</td>
+                <td><a href="{{ data.get('url', '#') }}" target="_blank">{{ data.get('url', '—') }}</a></td>
+                <td><a href="https://stream.example.com/stream?name={{ name }}" target="_blank">https://stream.example.com/stream?name={{ name }}</a></td>
+                <td>
+                    <button type="button" onclick="copyToClipboard('{{ data.get('m3u8', '') }}')">📋 Copy</button>
+                    <button type="button" onclick="downloadM3U8('{{ name }}', '{{ data.get('m3u8', '') }}')">⬇️ Download</button>
+                </td>
                 <td>
                     <form action="{{ url_for('delete') }}" method="post" style="display:inline;">
                         <input type="hidden" name="name" value="{{ name }}">
