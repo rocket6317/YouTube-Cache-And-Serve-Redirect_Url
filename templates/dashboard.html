@@ -4,57 +4,18 @@
     <meta charset="utf-8">
     <title>Stream Dashboard</title>
     <style>
-        body {
-            font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, "Helvetica Neue", Arial, "Noto Sans", sans-serif;
-            margin: 20px;
-        }
-        .action-bar {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
-            margin-bottom: 20px;
-            align-items: center;
-        }
-        button {
-            background-color: #007BFF;
-            color: #fff;
-            border: none;
-            padding: 8px 14px;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 14px;
-        }
-        button:hover {
-            background-color: #0056b3;
-        }
-        table {
-            border-collapse: collapse;
-            width: 100%;
-            table-layout: fixed;
-        }
-        th, td {
-            border: 1px solid #e3e3e3;
-            padding: 10px;
-            word-wrap: break-word;
-            text-align: left;
-        }
-        th {
-            background-color: #f7f7f7;
-        }
-        .empty {
-            padding: 16px;
-            background: #fff8e1;
-            border: 1px solid #ffe082;
-            border-radius: 6px;
-            color: #5d4b00;
-            margin-top: 10px;
-        }
+        body { font-family: system-ui, sans-serif; margin: 20px; }
+        .action-bar { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 20px; align-items: center; }
+        button { background-color: #007BFF; color: #fff; border: none; padding: 8px 14px; border-radius: 6px; cursor: pointer; font-size: 14px; }
+        button:hover { background-color: #0056b3; }
+        table { border-collapse: collapse; width: 100%; table-layout: fixed; }
+        th, td { border: 1px solid #e3e3e3; padding: 10px; word-wrap: break-word; text-align: left; }
+        th { background-color: #f7f7f7; }
+        .empty { padding: 16px; background: #fff8e1; border: 1px solid #ffe082; border-radius: 6px; color: #5d4b00; margin-top: 10px; }
     </style>
     <script>
         function copyToClipboard(text) {
-            navigator.clipboard.writeText(text).then(() => {
-                alert("Copied to clipboard!");
-            });
+            navigator.clipboard.writeText(text).then(() => { alert("Copied to clipboard!"); });
         }
         function downloadM3U8(name, url) {
             const blob = new Blob([url], { type: "application/vnd.apple.mpegurl" });
@@ -70,22 +31,13 @@
     <h1>📺 Stream Dashboard</h1>
 
     <div class="action-bar">
-        <form action="{{ url_for('add') }}" method="get">
-            <button type="submit">➕ Add Channel</button>
-        </form>
-        <form action="{{ url_for('refresh') }}" method="post">
-            <button type="submit">🔄 Refresh</button>
-        </form>
-        <form action="{{ url_for('download_channels') }}" method="get">
-            <button type="submit">⬇️ Download channels.txt</button>
-        </form>
-        <form action="{{ url_for('logs') }}" method="get">
-            <button type="submit">📜 View Access Logs</button>
-        </form>
+        <form action="{{ url_for('add') }}" method="get"><button type="submit">➕ Add Channel</button></form>
+        <form action="{{ url_for('refresh') }}" method="post"><button type="submit">🔄 Refresh</button></form>
+        <form action="{{ url_for('download_channels') }}" method="get"><button type="submit">⬇️ Download channels.txt</button></form>
+        <form action="{{ url_for('logs') }}" method="get"><button type="submit">📜 View Access Logs</button></form>
     </div>
 
-    <p>Last update: {{ last_update if last_update else '—' }} |
-       Next update: {{ next_update if next_update else '—' }}</p>
+    <p>Last update: {{ last_update if last_update else '—' }} | Next update: {{ next_update if next_update else '—' }}</p>
 
     {% if streams and streams|length > 0 %}
     <table>
@@ -121,9 +73,6 @@
         </tbody>
     </table>
     {% else %}
-    <div class="empty">
-        No streams found. Click “➕ Add Channel” to create one, or “🔄 Refresh” to reload from channels.txt.
-    </div>
+    <div class="empty">No streams found. Click “➕ Add Channel” to create one, or “🔄 Refresh” to reload from channels.txt.</div>
     {% endif %}
 </body>
-</html>
