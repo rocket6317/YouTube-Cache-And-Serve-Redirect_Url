@@ -6,8 +6,8 @@
 <body>
   <h1>Add Stream</h1>
   <form action="/dashboard/add" method="post">
-    <label>Name: <input type="text" name="name"></label><br>
-    <label>YouTube URL: <input type="text" name="url"></label><br>
+    <label>Name: <input type="text" name="name" required></label><br>
+    <label>YouTube URL: <input type="url" name="url" required></label><br>
     <button type="submit">Add</button>
   </form>
   <a href="/dashboard">⬅️ Back to Dashboard</a>
