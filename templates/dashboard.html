@@ -37,4 +37,22 @@
             {% for name, stream in streams.items() %}
             <tr>
                 <td>{{ stream.channel }}</td>
-                <td><a href="{{
+                <td><a href="{{ stream.url }}" target="_blank">{{ stream.url }}</a></td>
+                <td><code>https://{{ request.host }}/stream?name={{ name }}</code></td>
+                <td>
+                    <form action="/dashboard/delete" method="post" style="display:inline;">
+                        <input type="hidden" name="name" value="{{ name }}">
+                        <button type="submit">🗑️ Delete</button>
+                    </form>
+                    {% if stream.m3u8 %}
+                        <a href="{{ stream.m3u8 }}" download="{{ name }}.m3u8" style="margin-left:10px;">⬇️ Download</a>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <p><a href="/logs">📊 View Access Logs</a></p>
+</body>
+</html>
