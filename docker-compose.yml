@@ -9,9 +9,6 @@ services:
     restart: unless-stopped
     environment:
       - YTDLP_EXTERNAL_JS=1
-    volumes:
-      - ./channels.txt:/app/channels.txt
-      - ./db.json:/app/db.json
 
   youtube-scheduler:
     build: .
@@ -19,7 +16,5 @@ services:
     restart: unless-stopped
     environment:
       - YTDLP_EXTERNAL_JS=1
-    volumes:
-      - ./channels.txt:/app/channels.txt
-      - ./db.json:/app/db.json
+    # Run the scheduler loop once, updating db.json from channels.txt
     command: python -c "import scheduler; scheduler.start_scheduler()"
