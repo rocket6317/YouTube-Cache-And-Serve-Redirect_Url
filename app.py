@@ -6,7 +6,8 @@ from db import (
     read_channels_file, write_channels_file
 )
 from fetcher import fetch_info
-from scheduler import start_scheduler, last_update
+import scheduler
+from scheduler import start_scheduler
 from config import UPDATE_INTERVAL_HOURS
 
 app = Flask(__name__)
@@ -31,7 +32,7 @@ def stream():
 @app.route("/dashboard")
 def dashboard():
     streams = streams_table()
-    lu = last_update
+    lu = scheduler.last_update
     nu = (lu + timedelta(hours=UPDATE_INTERVAL_HOURS)) if lu else None
     return render_template("dashboard.html", streams=streams, last_update=lu, next_update=nu)
 
