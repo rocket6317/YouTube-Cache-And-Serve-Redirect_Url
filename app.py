@@ -29,7 +29,7 @@ def stream():
 
     if url:
         log_access(name, ip)
-        logger.info(f"Redirecting client {ip} to stream {name}")
+        # Removed noisy INFO log line here
         return redirect(url)
     logger.warning(f"Stream {name} not found for client {ip}")
     return "Stream not found", 404
