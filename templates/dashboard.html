@@ -83,14 +83,15 @@
             </tr>
         </thead>
         <tbody>
-            {% for stream in streams %}
+            {# streams_table() returns a dict: {name: {url, m3u8, channel}} #}
+            {% for name, data in streams.items() %}
             <tr>
-                <td>{{ stream['name']|default('—') }}</td>
-                <td>{{ stream['channel']|default('—') }}</td>
-                <td>{{ stream['m3u8']|default('—') }}</td>
+                <td>{{ name }}</td>
+                <td>{{ data.get('channel', '—') }}</td>
+                <td>{{ data.get('m3u8', '—') }}</td>
                 <td>
                     <form action="{{ url_for('delete') }}" method="post" style="display:inline;">
-                        <input type="hidden" name="name" value="{{ stream['name']|default('') }}">
+                        <input type="hidden" name="name" value="{{ name }}">
                         <button type="submit">🗑️ Delete</button>
                     </form>
                 </td>
