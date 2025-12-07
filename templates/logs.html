@@ -5,11 +5,10 @@
     <title>Access Logs</title>
     <style>
         body { font-family: system-ui, sans-serif; margin: 20px; }
-        table { border-collapse: collapse; width: 100%; }
+        table { border-collapse: collapse; width: 100%; margin-bottom: 20px; }
         th, td { border: 1px solid #e3e3e3; padding: 8px; text-align: left; }
         th { background-color: #f7f7f7; }
-        .section { margin-bottom: 24px; }
-        .section h2 { margin: 0 0 8px; font-size: 16px; }
+        h2 { margin-top: 30px; }
     </style>
 </head>
 <body>
@@ -17,29 +16,34 @@
 
     {% if grouped_logs and grouped_logs|length > 0 %}
         {% for channel, by_ip in grouped_logs.items() %}
-        <div class="section">
-            <h2>Channel: {{ channel }}</h2>
-            <table>
-                <thead>
-                    <tr>
-                        <th>Client IP</th>
-                        <th>Access count</th>
-                        <th>First access</th>
-                        <th>Last access</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for ip, entries in by_ip.items() %}
-                    <tr>
-                        <td>{{ ip }}</td>
-                        <td>{{ entries|length }}</td>
-                        <td>{{ entries[0].timestamp }}</td>
-                        <td>{{ entries[-1].timestamp }}</td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
+        <h2>Channel: {{ channel }}</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Client IP</th>
+                    <th>Local Handle(s)</th>
+                    <th>Access Count</th>
+                    <th>First Access</th>
+                    <th>Last Access</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for ip, entries in by_ip.items() %}
+                <tr>
+                    <td>{{ ip }}</td>
+                    <td>
+                        {# show all handles used by this IP for this channel #}
+                        {% for entry in entries %}
+                            {{ entry.name }}{% if not loop.last %}, {% endif %}
+                        {% endfor %}
+                    </td>
+                    <td>{{ entries|length }}</td>
+                    <td>{{ entries[0].timestamp }}</td>
+                    <td>{{ entries[-1].timestamp }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
         {% endfor %}
     {% else %}
         <p>No access logs recorded yet.</p>
