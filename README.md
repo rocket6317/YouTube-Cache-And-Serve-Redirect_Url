@@ -34,10 +34,11 @@ cd youtube-redirector
 
 
 2. Add Your Channels
-Go to dashboard URL (http://localhost:6095/dashboard) and click Add button to add your first stream. Note that channels.txt is not used anymore. Name is will be name of the stream, the part you will use after https://yourdomain.com:6095/stream?name=the_name_you_have_chosen_while_adding_the_stream
+App initially reads the entries in channels.txt. So make sure you enter the channels you like to channels.txt in a comma separated value format. Eg. ChannelHandleOfYourChoice,https://www.youtube.com/watch?v=VIDEO_ID (also supports https://www.youtube.com/@channelname/live format) See included channels.txt for more examples.
  
-https://www.youtube.com/@channelname/live
-https://www.youtube.com/watch?v=VIDEO_ID
+ChannelHandleOfYourChoice will be name of the stream, the part you will use after https://yourdomain.com:6095/stream?name=the_name_you_have_chosen_while_adding_the_stream
+ 
+After first launch the channels.txt will be updated automatically if you delete/add channels using the dashboard UI. You can also download the up-to-date channels.txt using the download button. 
 
 3. Build & Run with Docker
 docker-compose up --build -d
@@ -47,24 +48,21 @@ The app will be available at: http://localhost:6095/dashboard
 🖥️ Dashboard
 
 •  🔄 Refresh Now: Manually refresh all stream links
-•  ➕ Add New Stream: Append a new YouTube livestream (Starts empty so don't forget to add channels after successful launch)
+•  ➕ Add New Stream: Append a new YouTube livestream
 •  📊 View Access Logs: See IP-based access counts and timestamps
 •  🗑️ Delete: Remove a stream from the cache
 
 🔁 Redirect Usage
 
 To get the latest M3U8 link for a stream:
-GET /stream?name=stream_name
 https://yourdomain.com:6095/stream?name=channelname
-https://yourdomain.com:6095/stream?name=video_VIDEOID (replace VIDEOID with actual ID, eg. https://yourdomain.com:6095/stream?name=vvideo_UX38PTCabzM)
+http://localhost:6095/stream?name=the_name_you_have_chosen_while_adding_the_stream
 
 ⚙️ Configuration (Optional)
 
 Edit config.py:
 
 UPDATE_INTERVAL_HOURS = 6  # How often to refresh links
-DB_PATH = 'streams.json'   # Cache file
-TIMESTAMP_PATH = 'last_update.txt'
 
 📊 Access Logging
 
@@ -105,4 +103,3 @@ Built with ❤️ using:
 •  yt-dlp
 •  TinyDB
 •  APScheduler
-
