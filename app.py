@@ -1,5 +1,5 @@
 import logging
-from flask import Flask, request, redirect, render_template, url_for
+from flask import Flask, request, redirect, render_template, url_for, Response
 from datetime import datetime, timedelta
 from db import (
     get_stream, streams_table, update_stream, delete_stream,
@@ -122,6 +122,16 @@ def logs():
 
     logger.info("Logs accessed")
     return render_template("logs.html", grouped_logs=grouped)
+
+@app.route("/download_channels")
+def download_channels():
+    channels = read_channels_file()
+    content = "\n".join([f"{name},{url}" for name, url in channels.items()])
+    return Response(
+        content,
+        mimetype="text/plain",
+        headers={"Content-Disposition": "attachment;filename=channels.txt"}
+    )
 
 @app.route("/health")
 def health():
