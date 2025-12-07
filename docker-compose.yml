@@ -9,3 +9,17 @@ services:
     restart: unless-stopped
     environment:
       - YTDLP_EXTERNAL_JS=1
+    volumes:
+      - ./channels.txt:/app/channels.txt
+      - ./db.json:/app/db.json
+
+  youtube-scheduler:
+    build: .
+    container_name: youtube-scheduler
+    restart: unless-stopped
+    environment:
+      - YTDLP_EXTERNAL_JS=1
+    volumes:
+      - ./channels.txt:/app/channels.txt
+      - ./db.json:/app/db.json
+    command: python -c "import scheduler; scheduler.start_scheduler()"
