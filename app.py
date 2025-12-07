@@ -3,16 +3,17 @@ from datetime import datetime, timedelta
 from db import (
     get_stream, streams_table, update_stream, delete_stream,
     log_access, get_access_log,
-    read_channels_file, write_channels_file, load_db
+    read_channels_file, write_channels_file, load_db, save_db
 )
 from fetcher import fetch_info
-from scheduler import start_scheduler
+import scheduler
 from config import UPDATE_INTERVAL_HOURS
 
 app = Flask(__name__)
 
-# Start scheduler once (master process)
-start_scheduler()
+# Only start scheduler if running as the main process (not imported by Gunicorn workers)
+if __name__ == "__main__":
+    scheduler.start_scheduler()
 
 @app.route("/stream")
 def stream():
@@ -34,12 +35,12 @@ def dashboard():
     db = load_db()
     lu = db.get("last_update")
     nu = None
+    lu_dt = None
     if lu:
         lu_dt = datetime.fromisoformat(lu)
         nu = lu_dt + timedelta(hours=UPDATE_INTERVAL_HOURS)
     return render_template("dashboard.html", streams=streams,
-                           last_update=lu_dt if lu else None,
-                           next_update=nu)
+                           last_update=lu_dt, next_update=nu)
 
 @app.route("/dashboard/refresh", methods=["POST"])
 def refresh():
