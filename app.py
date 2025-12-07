@@ -1,3 +1,4 @@
+import logging
 from flask import Flask, request, redirect, render_template, url_for
 from datetime import datetime, timedelta
 from db import (
@@ -9,10 +10,12 @@ from fetcher import fetch_info
 from config import UPDATE_INTERVAL_HOURS
 from scheduler import start_scheduler
 
+logger = logging.getLogger("app")
+logger.setLevel(logging.INFO)
+
 app = Flask(__name__)
 
-# Start scheduler when app is imported by Gunicorn (single worker)
-print("[App] Starting scheduler and reading channels.txt at launch...")
+logger.info("Starting scheduler and reading channels.txt at launch...")
 start_scheduler()
 
 @app.route("/stream")
@@ -26,9 +29,9 @@ def stream():
 
     if url:
         log_access(name, ip)
-        print(f"[App] Redirecting client {ip} to stream {name}")
+        logger.info(f"Redirecting client {ip} to stream {name}")
         return redirect(url)
-    print(f"[App] Stream {name} not found for client {ip}")
+    logger.warning(f"Stream {name} not found for client {ip}")
     return "Stream not found", 404
 
 @app.route("/dashboard")
@@ -41,22 +44,22 @@ def dashboard():
     if lu:
         lu_dt = datetime.fromisoformat(lu)
         nu = lu_dt + timedelta(hours=UPDATE_INTERVAL_HOURS)
-    print("[App] Dashboard accessed")
+    logger.info("Dashboard accessed")
     return render_template("dashboard.html", streams=streams,
                            last_update=lu_dt, next_update=nu)
 
 @app.route("/dashboard/refresh", methods=["POST"])
 def refresh():
-    print("[App] Manual dashboard refresh triggered")
+    logger.info("Manual dashboard refresh triggered")
     channels = read_channels_file()
     for name, url in channels.items():
         info = fetch_info(url)
         if info:
             update_stream(name, url, info.get("m3u8"), info.get("channel"))
-            print(f"[App] Updated {name} via manual refresh")
+            logger.info(f"Updated {name} via manual refresh")
         else:
             update_stream(name, url, None, None)
-            print(f"[App] Failed to update {name} via manual refresh")
+            logger.warning(f"Failed to update {name} via manual refresh")
 
     db = load_db()
     db["last_update"] = datetime.utcnow().isoformat()
@@ -75,10 +78,10 @@ def add():
         info = fetch_info(url)
         if info:
             update_stream(name, url, info.get("m3u8"), info.get("channel"))
-            print(f"[App] Added new stream {name}")
+            logger.info(f"Added new stream {name}")
         else:
             update_stream(name, url, None, None)
-            print(f"[App] Failed to add stream {name}")
+            logger.warning(f"Failed to add stream {name}")
 
         channels = read_channels_file()
         channels[name] = url
@@ -96,7 +99,7 @@ def delete():
         if name in channels:
             del channels[name]
             write_channels_file(channels)
-        print(f"[App] Deleted stream {name}")
+        logger.info(f"Deleted stream {name}")
     return redirect(url_for("dashboard"))
 
 @app.route("/logs")
@@ -117,5 +120,5 @@ def logs():
 
         grouped[channel][ip].append({"timestamp": timestamp})
 
-    print("[App] Logs accessed")
+    logger.info("Logs accessed")
     return render_template("logs.html", grouped_logs=grouped)
