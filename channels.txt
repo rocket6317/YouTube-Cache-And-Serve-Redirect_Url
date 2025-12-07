@@ -1,6 +1,5 @@
-sozcutelevizyonu|https://www.youtube.com/@Sozcutelevizyonu/live
-kizilcikserbetidizi|https://www.youtube.com/@kizilcikserbetidizi/live
-video_325m8PqVH74|https://www.youtube.com/watch?v=325m8PqVH74
-video_uHFFmx06SQ|https://www.youtube.com/watch?v=uHFFmx06SQ
-video_fO9e9jnhYK8|https://www.youtube.com/watch?v=fO9e9jnhYK8
-video_HfgIFGbdGJ0|https://www.youtube.com/watch?v=HfgIFGbdGJ0
+sozcutv,https://www.youtube.com/@Sozcutelevizyonu/live
+kizilcikserbeti,https://www.youtube.com/@kizilcikserbetidizi/live
+tomorrowlandowr|https://www.youtube.com/watch?v=325m8PqVH74
+sen|https://www.youtube.com/watch?v=fO9e9jnhYK8
+earthtv|https://www.youtube.com/watch?v=HfgIFGbdGJ0
