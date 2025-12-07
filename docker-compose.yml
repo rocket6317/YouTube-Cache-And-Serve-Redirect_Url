@@ -16,5 +16,4 @@ services:
     restart: unless-stopped
     environment:
       - YTDLP_EXTERNAL_JS=1
-    # Run the scheduler loop once, updating db.json from channels.txt
     command: python -c "import scheduler; scheduler.start_scheduler()"
