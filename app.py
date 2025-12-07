@@ -40,13 +40,22 @@ def dashboard():
     db = load_db()
     lu = db.get("last_update")
     nu = None
-    lu_dt = None
+    lu_fmt = None
+    nu_fmt = None
+
     if lu:
         lu_dt = datetime.fromisoformat(lu)
-        nu = lu_dt + timedelta(hours=UPDATE_INTERVAL_HOURS)
+        nu_dt = lu_dt + timedelta(hours=UPDATE_INTERVAL_HOURS)
+        lu_fmt = lu_dt.strftime("%H:%M:%S on %d-%m-%Y")
+        nu_fmt = nu_dt.strftime("%H:%M:%S on %d-%m-%Y")
+
     logger.info("Dashboard accessed")
-    return render_template("dashboard.html", streams=streams,
-                           last_update=lu_dt, next_update=nu)
+    return render_template(
+        "dashboard.html",
+        streams=streams,
+        last_update=lu_fmt,
+        next_update=nu_fmt
+    )
 
 @app.route("/dashboard/refresh", methods=["POST"])
 def refresh():
