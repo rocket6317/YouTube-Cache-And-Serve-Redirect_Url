@@ -2,16 +2,16 @@ from flask import Flask, request, redirect, render_template, url_for
 from datetime import timedelta
 from db import (
     get_stream, streams_table, update_stream, delete_stream,
-    log_access, get_access_log, prune_old_logs,
+    log_access, get_access_log,
     read_channels_file, write_channels_file
 )
 from fetcher import fetch_info
-from scheduler import start_scheduler
+from scheduler import start_scheduler, last_update
 from config import UPDATE_INTERVAL_HOURS
 
 app = Flask(__name__)
 
-# Start scheduler (which also does initial refresh from channels.txt)
+# Start scheduler (initial refresh + periodic jobs)
 start_scheduler()
 
 @app.route("/stream")
@@ -31,16 +31,12 @@ def stream():
 @app.route("/dashboard")
 def dashboard():
     streams = streams_table()
-    # Scheduler holds last_update internally; for UI we compute next interval window
-    # We won't expose last_update here to avoid tight coupling; template will show only Refresh/Add.
-    # If you want timestamps shown, you can import last_update from scheduler and compute next_update here.
-    last_update = None
-    next_update = None
-    return render_template("dashboard.html", streams=streams, last_update=last_update, next_update=next_update)
+    lu = last_update
+    nu = (lu + timedelta(hours=UPDATE_INTERVAL_HOURS)) if lu else None
+    return render_template("dashboard.html", streams=streams, last_update=lu, next_update=nu)
 
 @app.route("/dashboard/refresh", methods=["POST"])
 def refresh():
-    # Manual refresh: read channels.txt and update db.json
     channels = read_channels_file()
     for name, url in channels.items():
         info = fetch_info(url)
@@ -58,14 +54,12 @@ def add():
         if not name or not url:
             return redirect(url_for("dashboard"))
 
-        # Update db.json
         info = fetch_info(url)
         if info:
             update_stream(name, url, info.get("m3u8"), info.get("channel"))
         else:
             update_stream(name, url, None, None)
 
-        # Sync channels.txt
         channels = read_channels_file()
         channels[name] = url
         write_channels_file(channels)
@@ -77,9 +71,7 @@ def add():
 def delete():
     name = request.form.get("name", "").strip()
     if name:
-        # Update db.json
         delete_stream(name)
-        # Sync channels.txt
         channels = read_channels_file()
         if name in channels:
             del channels[name]
@@ -99,10 +91,6 @@ def logs():
         if channel not in grouped:
             grouped[channel] = {}
 
-        if ip not in grouped[channel]:
-            grouped[ip] = []
-
-        # Correct grouping: group per channel, then ip
         if ip not in grouped[channel]:
             grouped[channel][ip] = []
 
