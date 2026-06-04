@@ -1,107 +1,215 @@
-# 🎬 YouTube Livestream Redirector Dashboard
+# YouTube Livestream Redirector Dashboard
 
-A lightweight Flask-based dashboard that caches YouTube livestream URLs (M3U8) and serves them via redirect links. Built for simplicity, speed, and self-hosting — ideal for embedding or sharing stable stream links.
+A lightweight Flask dashboard that turns YouTube livestreams into stable local redirect URLs for IPTV players and other clients.
 
-[![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/M4M31NTEGN)
+The app stores your stream list, extracts fresh YouTube HLS/M3U8 URLs with `yt-dlp`, and serves each stream through a stable endpoint:
 
----
+```text
+https://your-domain/stream?name=channelname
+```
 
-## 🚀 Features
+## Features
 
-- 🔁 **Redirector**: Serve cached M3U8 links via `/stream?name=...`
-- 🧠 **Smart Caching**: Uses `yt-dlp` to extract and refresh livestream URLs
-- 🔎 **Live Link Repair**: Re-checks `watch?v=...` entries and finds the channel's current `/live` stream when broadcast URLs change
-- 🗂️ **Dashboard**: View, add, delete, and refresh streams
-- 📊 **Access Logs**: Track IP-based access counts and timestamps per stream
-- 🕒 **Auto Scheduler**: Refreshes streams every 6 hours (configurable)
-- 🐳 **Dockerized**: Easy deployment with Docker & Portainer
+- Stable `/stream?name=...` redirect URLs for IPTV clients
+- Dashboard to add, delete, refresh, repair, and inspect streams
+- `yt-dlp` based M3U8 extraction
+- Automatic scheduled refresh
+- Per-stream `Check Live` repair button
+- Automatic repair for changed YouTube live broadcast URLs
+- Access logs grouped by stream and client IP
+- Docker image published to GitHub Container Registry
+- Portainer-friendly `docker-compose.yml`
 
----
+## How Live Link Repair Works
 
-## 📦 Requirements
+Some YouTube livestreams keep the same channel but change their `watch?v=...` broadcast URL. When that happens, an old saved video URL can stop returning a valid M3U8 link.
 
-- Python 3.8+
-- `yt-dlp`, `Flask`, `TinyDB`, `APScheduler`, `gunicorn`, `python-dotenv` (see `requirements.txt`)
+This app handles that in two ways:
 
----
+1. It first tries the saved URL.
+2. If the saved URL fails, it tries to discover the channel's current live page, including:
+   - `https://www.youtube.com/@handle/live`
+   - `https://www.youtube.com/channel/CHANNEL_ID/live`
+   - `https://www.youtube.com/c/name/live`
+   - `https://www.youtube.com/user/name/live`
 
-## 🛠️ Setup
+If a new live stream is found, the app updates both:
 
-### 1. Clone the Repo
+- `db.json`, for the current cached redirect
+- `channels.txt`, so the repair survives container restarts
+
+If one stream cannot be repaired, it is marked `no_live_found`. Other streams continue to refresh and serve normally.
+
+## Dashboard
+
+Default local dashboard:
+
+```text
+http://localhost:6095/dashboard
+```
+
+Main controls:
+
+- `Add Channel`: add a new local stream name and YouTube URL
+- `Refresh`: refresh all streams and repair failed live links when possible
+- `Download channels.txt`: download the current source list
+- `View Access Logs`: inspect stream access by IP and timestamp
+
+Per-stream controls:
+
+- `Copy`: copy the current extracted M3U8 URL
+- `Download`: download a one-line `.m3u8` file
+- `Check Live`: immediately re-check one stream and repair changed live URLs
+- `Delete`: remove the stream
+
+## Redirect Usage
+
+Use the local handle from the dashboard:
+
+```text
+https://your-domain/stream?name=channelname
+http://localhost:6095/stream?name=channelname
+```
+
+The client is redirected to the latest cached YouTube M3U8 URL. If a stream has no working M3U8, that one stream returns `404 Stream not found`.
+
+## Data Files
+
+Runtime data is stored in `DATA_DIR`.
+
+In Docker, the compose file sets:
+
+```text
+DATA_DIR=/data
+```
+
+The named Docker volume is mounted at `/data` and stores:
+
+- `channels.txt`
+- `db.json`
+- `timestamps.txt`
+
+This keeps persistent data separate from `/app`, so updating the container image actually updates the application code.
+
+`channels.txt` format:
+
+```text
+local_name,https://www.youtube.com/@channel/live
+local_name_2,https://www.youtube.com/watch?v=VIDEO_ID
+```
+
+## Docker And Portainer
+
+The default compose file uses the published GHCR image:
+
+```yaml
+services:
+  youtube-redirector:
+    image: ghcr.io/rocket6317/youtube-cache-and-serve-redirect-url:latest
+    ports:
+      - "6095:6095"
+    environment:
+      - DATA_DIR=/data
+      - YTDLP_EXTERNAL_JS=1
+    volumes:
+      - app_data:/data
+```
+
+Deploy with Docker Compose:
 
 ```bash
-git clone https://github.com/yourusername/youtube-redirector.git
-cd youtube-redirector
+docker compose up -d
+```
 
+For Portainer:
 
-2. Add Your Channels
-App initially reads the entries in channels.txt. So make sure you enter the channels you like to channels.txt in a comma separated value format. Eg. ChannelHandleOfYourChoice,https://www.youtube.com/watch?v=VIDEO_ID (also supports https://www.youtube.com/@channelname/live format) See included channels.txt for more examples.
- 
-ChannelHandleOfYourChoice will be name of the stream, the part you will use after https://yourdomain.com:6095/stream?name=the_name_you_have_chosen_while_adding_the_stream
- 
-After first launch the channels.txt will be updated automatically if you delete/add channels using the dashboard UI. You can also download the up-to-date channels.txt using the download button. 
+1. Use this repository as the stack source, or paste the `docker-compose.yml`.
+2. Redeploy the stack.
+3. Pull/recreate the container when `main` is updated.
 
-3. Build & Run with Docker
-docker-compose up --build -d
+The image is published at:
 
-The app will be available at: http://localhost:6095/dashboard
+```text
+ghcr.io/rocket6317/youtube-cache-and-serve-redirect-url:latest
+```
 
-🖥️ Dashboard
+GitHub Actions builds and publishes this image on every push to `main`.
 
-•  🔄 Refresh Now: Manually refresh all stream links
-•  🔎 Check Live: Re-check one stream and repair changed YouTube live URLs
-•  ➕ Add New Stream: Append a new YouTube livestream
-•  📊 View Access Logs: See IP-based access counts and timestamps
-•  🗑️ Delete: Remove a stream from the cache
+## Local Development
 
-🔁 Redirect Usage
+Clone the repository:
 
-To get the latest M3U8 link for a stream:
-https://yourdomain.com:6095/stream?name=channelname
-http://localhost:6095/stream?name=the_name_you_have_chosen_while_adding_the_stream
+```bash
+git clone https://github.com/rocket6317/YouTube-Cache-And-Serve-Redirect_Url.git
+cd YouTube-Cache-And-Serve-Redirect_Url
+```
 
-⚙️ Configuration (Optional)
+Create a virtual environment:
 
-Edit config.py:
-
-UPDATE_INTERVAL_HOURS = 6  # How often to refresh links
-
-📊 Access Logging
-
-Each time a stream is accessed via /stream, the following is logged:
-
-•  IP address
-•  Timestamp
-•  Stream name
-
-View logs at /dashboard/logs.
-
-🧼 Logging
-
-Minimal but informative logs are printed to stdout:
-[CACHE] stream_name updated
-[SERVE] stream_name served to 203.0.113.10
-[ADD] stream_name added
-[DELETE] stream_name removed
-[REFRESH] Manual refresh triggered
-
-
-🧪 Development
-
-To run locally:
+```bash
+python3 -m venv venv
+source venv/bin/activate
 pip install -r requirements.txt
+pip install --upgrade yt-dlp
+```
+
+Run locally:
+
+```bash
 python app.py
+```
 
-📄 License
+Local runtime files default to the current directory unless `DATA_DIR` is set.
 
-MIT License — free to use, modify, and distribute.
+## Configuration
 
+Refresh interval is configured in `config.py`:
 
-🙌 Credits
+```python
+UPDATE_INTERVAL_HOURS = 6
+```
 
-Built with ❤️ using:
+The Docker image also sets:
 
-•  Flask
-•  yt-dlp
-•  TinyDB
-•  APScheduler
+```text
+YTDLP_EXTERNAL_JS=1
+```
+
+The Dockerfile installs Deno so `yt-dlp` can use an external JavaScript runtime when YouTube extraction needs it.
+
+## Health Check
+
+The container exposes:
+
+```text
+/health
+```
+
+Expected response:
+
+```text
+OK
+```
+
+## Logging
+
+Logs are printed to stdout for Portainer/Docker log viewing. Typical events include:
+
+```text
+[CACHE] Updated stream successfully
+[REPAIR] Trying live candidate
+[WARN] Repair refresh result
+[ERROR] Failed to fetch info
+```
+
+Access logs are stored in `db.json` and visible from the dashboard.
+
+## Credits
+
+Built with:
+
+- Flask
+- yt-dlp
+- APScheduler
+- Gunicorn
+- Deno
