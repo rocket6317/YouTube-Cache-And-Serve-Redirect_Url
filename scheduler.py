@@ -1,14 +1,31 @@
 import logging
 from apscheduler.schedulers.background import BackgroundScheduler
 from datetime import datetime
-from db import read_channels_file, update_stream, load_db, save_db
-from fetcher import fetch_info
+from db import read_channels_file, write_channels_file, update_stream, load_db, save_db
+from fetcher import fetch_info, repair_live_info
 from config import UPDATE_INTERVAL_HOURS
 
 logger = logging.getLogger("scheduler")
 logger.setLevel(logging.INFO)
 
 scheduler = BackgroundScheduler()
+
+
+def save_fetch_result(name, original_url, info, channels):
+    new_url = info.get("source_url") or info.get("resolved_live_url") or original_url
+    update_stream(
+        name,
+        new_url,
+        info.get("m3u8"),
+        info.get("channel") or name,
+        status=info.get("status"),
+        last_error=info.get("last_error"),
+        resolved_live_url=info.get("resolved_live_url"),
+    )
+    if new_url != original_url:
+        channels[name] = new_url
+        write_channels_file(channels)
+    return new_url
 
 
 def refresh_from_channels_txt():
@@ -30,18 +47,15 @@ def refresh_from_channels_txt():
         info = fetch_info(url, name)
 
         if info is None:
-            # Store failure cleanly
-            update_stream(name, url, None, None)
-            logger.warning(f"[WARN] Failed to fetch info for {name}")
+            repaired = repair_live_info(url, name)
+            save_fetch_result(name, url, repaired, channels)
+            logger.warning(
+                f"[WARN] Repair refresh result for {name}: {repaired.get('status')}"
+            )
             continue
 
         # Successful fetch
-        update_stream(
-            name,
-            url,
-            info.get("m3u8"),
-            info.get("channel") or name
-        )
+        save_fetch_result(name, url, info, channels)
         logger.info(f"[CACHE] Updated {name} successfully")
 
     # Update last_update timestamp in db.json

@@ -10,6 +10,7 @@ A lightweight Flask-based dashboard that caches YouTube livestream URLs (M3U8) a
 
 - 🔁 **Redirector**: Serve cached M3U8 links via `/stream?name=...`
 - 🧠 **Smart Caching**: Uses `yt-dlp` to extract and refresh livestream URLs
+- 🔎 **Live Link Repair**: Re-checks `watch?v=...` entries and finds the channel's current `/live` stream when broadcast URLs change
 - 🗂️ **Dashboard**: View, add, delete, and refresh streams
 - 📊 **Access Logs**: Track IP-based access counts and timestamps per stream
 - 🕒 **Auto Scheduler**: Refreshes streams every 6 hours (configurable)
@@ -48,6 +49,7 @@ The app will be available at: http://localhost:6095/dashboard
 🖥️ Dashboard
 
 •  🔄 Refresh Now: Manually refresh all stream links
+•  🔎 Check Live: Re-check one stream and repair changed YouTube live URLs
 •  ➕ Add New Stream: Append a new YouTube livestream
 •  📊 View Access Logs: See IP-based access counts and timestamps
 •  🗑️ Delete: Remove a stream from the cache

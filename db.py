@@ -55,13 +55,36 @@ def write_channels_file(channels_dict):
 
 # --- streams (db.json as working state) ---
 
-def update_stream(name, url, m3u8=None, channel=None):
+def update_stream(
+    name,
+    url,
+    m3u8=None,
+    channel=None,
+    status=None,
+    last_error=None,
+    resolved_live_url=None,
+):
     db = load_db()
-    db["streams"][name] = {
+    existing = db.get("streams", {}).get(name, {})
+    stream = {
         "url": url,
         "m3u8": m3u8,
         "channel": channel
     }
+    if status:
+        stream["status"] = status
+    elif existing.get("status"):
+        stream["status"] = existing.get("status")
+    if last_error:
+        stream["last_error"] = last_error
+    if resolved_live_url:
+        stream["resolved_live_url"] = resolved_live_url
+    if existing.get("last_success"):
+        stream["last_success"] = existing.get("last_success")
+    if m3u8:
+        stream["last_success"] = datetime.utcnow().isoformat()
+    stream["last_checked"] = datetime.utcnow().isoformat()
+    db["streams"][name] = stream
     save_db(db)
 
 def delete_stream(name):

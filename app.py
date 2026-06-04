@@ -6,7 +6,7 @@ from db import (
     log_access, get_access_log,
     read_channels_file, write_channels_file, load_db, save_db
 )
-from fetcher import fetch_info
+from fetcher import fetch_info, repair_live_info
 from config import UPDATE_INTERVAL_HOURS
 from scheduler import start_scheduler
 
@@ -17,6 +17,25 @@ app = Flask(__name__)
 
 logger.info("Starting scheduler and reading channels.txt at launch...")
 start_scheduler()
+
+
+def save_fetch_result(name, original_url, info, update_channels=False):
+    new_url = info.get("source_url") or info.get("resolved_live_url") or original_url
+    update_stream(
+        name,
+        new_url,
+        info.get("m3u8"),
+        info.get("channel") or name,
+        status=info.get("status"),
+        last_error=info.get("last_error"),
+        resolved_live_url=info.get("resolved_live_url"),
+    )
+    if update_channels and new_url != original_url:
+        channels = read_channels_file()
+        channels[name] = new_url
+        write_channels_file(channels)
+    return new_url
+
 
 @app.route("/stream")
 def stream():
@@ -64,11 +83,12 @@ def refresh():
     for name, url in channels.items():
         info = fetch_info(url)
         if info:
-            update_stream(name, url, info.get("m3u8"), info.get("channel"))
+            save_fetch_result(name, url, info)
             logger.info(f"Updated {name} via manual refresh")
         else:
-            update_stream(name, url, None, None)
-            logger.warning(f"Failed to update {name} via manual refresh")
+            repaired = repair_live_info(url, name)
+            save_fetch_result(name, url, repaired, update_channels=True)
+            logger.warning(f"Repair refresh result for {name}: {repaired.get('status')}")
 
     db = load_db()
     db["last_update"] = datetime.utcnow().isoformat()
@@ -86,10 +106,10 @@ def add():
 
         info = fetch_info(url)
         if info:
-            update_stream(name, url, info.get("m3u8"), info.get("channel"))
+            save_fetch_result(name, url, info)
             logger.info(f"Added new stream {name}")
         else:
-            update_stream(name, url, None, None)
+            update_stream(name, url, None, None, status="failed", last_error="Initial fetch failed")
             logger.warning(f"Failed to add stream {name}")
 
         channels = read_channels_file()
@@ -98,6 +118,26 @@ def add():
 
         return redirect(url_for("dashboard"))
     return render_template("add.html")
+
+
+@app.route("/dashboard/check-live", methods=["POST"])
+def check_live():
+    name = request.form.get("name", "").strip()
+    if name:
+        channels = read_channels_file()
+        url = channels.get(name)
+        if not url:
+            stream_data = streams_table().get(name, {})
+            url = stream_data.get("url")
+        if url:
+            info = repair_live_info(url, name)
+            new_url = save_fetch_result(name, url, info, update_channels=True)
+            logger.info(
+                f"Live check for {name}: {info.get('status')} "
+                f"({url} -> {new_url})"
+            )
+    return redirect(url_for("dashboard"))
+
 
 @app.route("/dashboard/delete", methods=["POST"])
 def delete():

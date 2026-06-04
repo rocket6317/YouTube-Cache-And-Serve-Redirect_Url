@@ -12,6 +12,11 @@
         th, td { border: 1px solid #e3e3e3; padding: 10px; word-wrap: break-word; text-align: left; }
         th { background-color: #f7f7f7; }
         .empty { padding: 16px; background: #fff8e1; border: 1px solid #ffe082; border-radius: 6px; color: #5d4b00; margin-top: 10px; }
+        .actions { display: flex; flex-wrap: wrap; gap: 6px; }
+        .status { font-size: 13px; }
+        .status-ok, .status-repaired { color: #137333; font-weight: 600; }
+        .status-no_live_found, .status-failed { color: #b3261e; font-weight: 600; }
+        .muted { color: #666; font-size: 12px; margin-top: 4px; }
     </style>
     <script>
         function copyToClipboard(text) {
@@ -43,10 +48,11 @@
     <table>
         <thead>
             <tr>
-                <th style="width: 20%;">Channel Name</th>
-                <th style="width: 15%;">Local Handle</th>
-                <th style="width: 25%;">Stream URL</th>
-                <th style="width: 20%;">IPTV Local URL</th>
+                <th style="width: 16%;">Channel Name</th>
+                <th style="width: 12%;">Local Handle</th>
+                <th style="width: 24%;">Stream URL</th>
+                <th style="width: 18%;">IPTV Local URL</th>
+                <th style="width: 10%;">Status</th>
                 <th style="width: 10%;">Redirect URL</th>
                 <th style="width: 10%;">Actions</th>
             </tr>
@@ -58,15 +64,28 @@
                 <td>{{ name }}</td>
                 <td><a href="{{ data.get('url', '#') }}" target="_blank">{{ data.get('url', '—') }}</a></td>
                 <td><a href="https://stream.example.com/stream?name={{ name }}" target="_blank">https://stream.example.com/stream?name={{ name }}</a></td>
+                <td class="status">
+                    {% set status = data.get('status', 'ok' if data.get('m3u8') else 'failed') %}
+                    <div class="status-{{ status }}">{{ status.replace('_', ' ') }}</div>
+                    {% if data.get('last_error') %}
+                    <div class="muted">{{ data.get('last_error') }}</div>
+                    {% endif %}
+                </td>
                 <td>
                     <button type="button" onclick="copyToClipboard('{{ data.get('m3u8', '') }}')">📋 Copy</button>
                     <button type="button" onclick="downloadM3U8('{{ name }}', '{{ data.get('m3u8', '') }}')">⬇️ Download</button>
                 </td>
                 <td>
-                    <form action="{{ url_for('delete') }}" method="post" style="display:inline;">
+                    <div class="actions">
+                    <form action="{{ url_for('check_live') }}" method="post">
+                        <input type="hidden" name="name" value="{{ name }}">
+                        <button type="submit">🔎 Check Live</button>
+                    </form>
+                    <form action="{{ url_for('delete') }}" method="post">
                         <input type="hidden" name="name" value="{{ name }}">
                         <button type="submit">🗑️ Delete</button>
                     </form>
+                    </div>
                 </td>
             </tr>
             {% endfor %}
