@@ -2,9 +2,12 @@ import json
 import os
 from datetime import datetime, timedelta
 
-DB_PATH = "db.json"
-CHANNELS_PATH = "channels.txt"
+DATA_DIR = os.getenv("DATA_DIR", ".")
+DB_PATH = os.path.join(DATA_DIR, "db.json")
+CHANNELS_PATH = os.path.join(DATA_DIR, "channels.txt")
 CHANNELS_DELIM = ","  # using comma as requested
+
+os.makedirs(DATA_DIR, exist_ok=True)
 
 def init_db():
     """Initialize db.json with empty streams and access_log."""

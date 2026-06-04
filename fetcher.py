@@ -1,5 +1,6 @@
 import yt_dlp
 import logging
+import os
 from urllib.parse import urlparse, parse_qs
 from datetime import datetime
 
@@ -193,7 +194,8 @@ def process_channels():
     # Save last update timestamp
     try:
         now_iso = datetime.utcnow().isoformat()
-        with open("timestamps.txt", "w") as f:
+        timestamps_path = os.path.join(os.getenv("DATA_DIR", "."), "timestamps.txt")
+        with open(timestamps_path, "w") as f:
             f.write(now_iso)
         logger.info(f"[TIMESTAMP] Updated at {now_iso}")
     except Exception as e:
