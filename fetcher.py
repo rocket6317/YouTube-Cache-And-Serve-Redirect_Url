@@ -42,6 +42,8 @@ def _normalise_stream_info(info, source_url, channel_name=None, repaired=False):
         "url": stream_url,
         "m3u8": stream_url,
         "channel": info.get("channel") or info.get("uploader"),
+        "channel_url": info.get("channel_url") or info.get("uploader_url"),
+        "channel_id": info.get("channel_id") or info.get("uploader_id"),
         "title": info.get("title"),
         "source_url": source_url,
         "resolved_live_url": source_url if repaired else None,
@@ -64,19 +66,30 @@ def fetch_info(url, channel_name=None):
     return _normalise_stream_info(info, url, channel_name)
 
 
-def _candidate_live_urls(info, original_url, channel_name=None):
+def _candidate_live_urls(
+    info,
+    original_url,
+    channel_name=None,
+    known_channel_url=None,
+    known_channel_id=None,
+):
     candidates = []
 
     def add(url):
         if url and url not in candidates:
             candidates.append(url)
 
-    channel_url = info.get("channel_url") or info.get("uploader_url")
-    channel_id = info.get("channel_id") or info.get("uploader_id")
+    channel_url = known_channel_url or info.get("channel_url") or info.get("uploader_url")
+    channel_id = known_channel_id or info.get("channel_id") or info.get("uploader_id")
     channel_handle = info.get("channel") or info.get("uploader")
 
     if channel_url:
-        add(channel_url.rstrip("/") + "/live")
+        normalised_channel_url = channel_url.rstrip("/")
+        add(
+            normalised_channel_url
+            if normalised_channel_url.endswith("/live")
+            else normalised_channel_url + "/live"
+        )
 
     if channel_id:
         if str(channel_id).startswith("@"):
@@ -110,7 +123,12 @@ def _candidate_live_urls(info, original_url, channel_name=None):
     return candidates
 
 
-def repair_live_info(url, channel_name=None):
+def repair_live_info(
+    url,
+    channel_name=None,
+    known_channel_url=None,
+    known_channel_id=None,
+):
     """
     Find the current livestream for a saved YouTube URL.
 
@@ -135,7 +153,13 @@ def repair_live_info(url, channel_name=None):
             )
             metadata = {}
 
-    for candidate in _candidate_live_urls(metadata, url, channel_name):
+    for candidate in _candidate_live_urls(
+        metadata,
+        url,
+        channel_name,
+        known_channel_url=known_channel_url,
+        known_channel_id=known_channel_id,
+    ):
         print(f"[REPAIR] Trying live candidate for '{channel_name or url}': {candidate}")
         candidate_info = _extract_info(candidate, channel_name)
         if not candidate_info:
@@ -149,6 +173,8 @@ def repair_live_info(url, channel_name=None):
         "url": None,
         "m3u8": None,
         "channel": metadata.get("channel") or metadata.get("uploader") or channel_name,
+        "channel_url": known_channel_url or metadata.get("channel_url") or metadata.get("uploader_url"),
+        "channel_id": known_channel_id or metadata.get("channel_id") or metadata.get("uploader_id"),
         "title": metadata.get("title"),
         "source_url": url,
         "resolved_live_url": None,

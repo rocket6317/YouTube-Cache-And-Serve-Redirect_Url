@@ -4,7 +4,7 @@ from datetime import datetime, timedelta
 from db import (
     get_stream, streams_table, update_stream, delete_stream,
     log_access, get_access_log,
-    read_channels_file, write_channels_file, load_db, save_db
+    read_channels_file, write_channels_file, load_db, set_last_update
 )
 from fetcher import fetch_info, repair_live_info
 from config import UPDATE_INTERVAL_HOURS
@@ -29,6 +29,8 @@ def save_fetch_result(name, original_url, info, update_channels=False):
         status=info.get("status"),
         last_error=info.get("last_error"),
         resolved_live_url=info.get("resolved_live_url"),
+        channel_url=info.get("channel_url"),
+        channel_id=info.get("channel_id"),
     )
     if update_channels and new_url != original_url:
         channels = read_channels_file()
@@ -80,19 +82,24 @@ def dashboard():
 def refresh():
     logger.info("Manual dashboard refresh triggered")
     channels = read_channels_file()
+    existing_streams = streams_table()
     for name, url in channels.items():
         info = fetch_info(url)
         if info:
             save_fetch_result(name, url, info)
             logger.info(f"Updated {name} via manual refresh")
         else:
-            repaired = repair_live_info(url, name)
+            existing = existing_streams.get(name, {})
+            repaired = repair_live_info(
+                url,
+                name,
+                known_channel_url=existing.get("channel_url"),
+                known_channel_id=existing.get("channel_id"),
+            )
             save_fetch_result(name, url, repaired, update_channels=True)
             logger.warning(f"Repair refresh result for {name}: {repaired.get('status')}")
 
-    db = load_db()
-    db["last_update"] = datetime.utcnow().isoformat()
-    save_db(db)
+    set_last_update()
 
     return redirect(url_for("dashboard"))
 
@@ -130,7 +137,13 @@ def check_live():
             stream_data = streams_table().get(name, {})
             url = stream_data.get("url")
         if url:
-            info = repair_live_info(url, name)
+            stream_data = streams_table().get(name, {})
+            info = repair_live_info(
+                url,
+                name,
+                known_channel_url=stream_data.get("channel_url"),
+                known_channel_id=stream_data.get("channel_id"),
+            )
             new_url = save_fetch_result(name, url, info, update_channels=True)
             logger.info(
                 f"Live check for {name}: {info.get('status')} "

@@ -16,6 +16,8 @@ https://your-domain/stream?name=channelname
 - Automatic scheduled refresh
 - Per-stream `Check Live` repair button
 - Automatic repair for changed YouTube live broadcast URLs
+- Persistent YouTube channel ID and channel URL discovery
+- Atomic, locked database writes to protect the stream cache
 - Access logs grouped by stream and client IP
 - Docker image published to GitHub Container Registry
 - Portainer-friendly `docker-compose.yml`
@@ -39,6 +41,8 @@ If a new live stream is found, the app updates both:
 - `channels.txt`, so the repair survives container restarts
 
 If one stream cannot be repaired, it is marked `no_live_found`. Other streams continue to refresh and serve normally.
+
+Whenever a stream works, the app also stores its stable YouTube channel URL and channel ID. Future repairs use that saved channel identity before guessing from the local stream name. This allows a stream such as local name `atv` to be repaired through its real YouTube handle or channel ID even if the old `watch?v=...` video becomes private or deleted.
 
 ## Dashboard
 
@@ -90,6 +94,8 @@ The named Docker volume is mounted at `/data` and stores:
 - `timestamps.txt`
 
 This keeps persistent data separate from `/app`, so updating the container image actually updates the application code.
+
+Database updates use file locking and atomic replacement so scheduled refreshes and access logging cannot overwrite each other's changes or leave a partially written `db.json`.
 
 `channels.txt` format:
 

@@ -1,7 +1,12 @@
 import logging
 from apscheduler.schedulers.background import BackgroundScheduler
-from datetime import datetime
-from db import read_channels_file, write_channels_file, update_stream, load_db, save_db
+from db import (
+    read_channels_file,
+    write_channels_file,
+    update_stream,
+    streams_table,
+    set_last_update,
+)
 from fetcher import fetch_info, repair_live_info
 from config import UPDATE_INTERVAL_HOURS
 
@@ -21,6 +26,8 @@ def save_fetch_result(name, original_url, info, channels):
         status=info.get("status"),
         last_error=info.get("last_error"),
         resolved_live_url=info.get("resolved_live_url"),
+        channel_url=info.get("channel_url"),
+        channel_id=info.get("channel_id"),
     )
     if new_url != original_url:
         channels[name] = new_url
@@ -40,6 +47,7 @@ def refresh_from_channels_txt():
         return
 
     logger.info(f"[SCHEDULER] Found {len(channels)} channels")
+    existing_streams = streams_table()
 
     for name, url in channels.items():
         logger.info(f"[FETCH] Fetching info for {name}")
@@ -47,7 +55,13 @@ def refresh_from_channels_txt():
         info = fetch_info(url, name)
 
         if info is None:
-            repaired = repair_live_info(url, name)
+            existing = existing_streams.get(name, {})
+            repaired = repair_live_info(
+                url,
+                name,
+                known_channel_url=existing.get("channel_url"),
+                known_channel_id=existing.get("channel_id"),
+            )
             save_fetch_result(name, url, repaired, channels)
             logger.warning(
                 f"[WARN] Repair refresh result for {name}: {repaired.get('status')}"
@@ -60,10 +74,8 @@ def refresh_from_channels_txt():
 
     # Update last_update timestamp in db.json
     try:
-        db = load_db()
-        db["last_update"] = datetime.utcnow().isoformat()
-        save_db(db)
-        logger.info(f"[TIMESTAMP] Updated at {db['last_update']}")
+        last_update = set_last_update()
+        logger.info(f"[TIMESTAMP] Updated at {last_update}")
     except Exception as e:
         logger.error(f"[ERROR] Failed to update db.json timestamp: {e}")
 

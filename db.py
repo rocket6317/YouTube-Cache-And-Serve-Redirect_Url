@@ -1,6 +1,10 @@
 import json
 import os
+import tempfile
+import threading
+from contextlib import contextmanager
 from datetime import datetime, timedelta
+import fcntl
 
 DATA_DIR = os.getenv("DATA_DIR", ".")
 DB_PATH = os.path.join(DATA_DIR, "db.json")
@@ -8,28 +12,79 @@ CHANNELS_PATH = os.path.join(DATA_DIR, "channels.txt")
 CHANNELS_DELIM = ","  # using comma as requested
 
 os.makedirs(DATA_DIR, exist_ok=True)
+_thread_lock = threading.RLock()
+
+
+@contextmanager
+def _file_lock(path):
+    lock_path = f"{path}.lock"
+    os.makedirs(os.path.dirname(os.path.abspath(lock_path)), exist_ok=True)
+    with _thread_lock:
+        with open(lock_path, "a+") as lock_file:
+            fcntl.flock(lock_file.fileno(), fcntl.LOCK_EX)
+            try:
+                yield
+            finally:
+                fcntl.flock(lock_file.fileno(), fcntl.LOCK_UN)
+
+
+def _empty_db():
+    return {"streams": {}, "access_log": []}
+
+
+def _atomic_write_json(path, data):
+    directory = os.path.dirname(os.path.abspath(path))
+    os.makedirs(directory, exist_ok=True)
+    fd, temp_path = tempfile.mkstemp(prefix=".db-", suffix=".tmp", dir=directory)
+    try:
+        with os.fdopen(fd, "w") as temp_file:
+            json.dump(data, temp_file, indent=2)
+            temp_file.flush()
+            os.fsync(temp_file.fileno())
+        os.replace(temp_path, path)
+    finally:
+        if os.path.exists(temp_path):
+            os.unlink(temp_path)
+
+
+def _load_db_unlocked():
+    if not os.path.exists(DB_PATH) or os.stat(DB_PATH).st_size == 0:
+        data = _empty_db()
+        _atomic_write_json(DB_PATH, data)
+        return data
+    try:
+        with open(DB_PATH, "r") as db_file:
+            data = json.load(db_file)
+    except json.JSONDecodeError:
+        print("[ERROR] db.json is corrupted or empty. Reinitializing.")
+        data = _empty_db()
+        _atomic_write_json(DB_PATH, data)
+    data.setdefault("streams", {})
+    data.setdefault("access_log", [])
+    return data
+
+
+def _mutate_db(mutator):
+    with _file_lock(DB_PATH):
+        data = _load_db_unlocked()
+        mutator(data)
+        _atomic_write_json(DB_PATH, data)
+        return data
 
 def init_db():
     """Initialize db.json with empty streams and access_log."""
-    with open(DB_PATH, 'w') as f:
-        json.dump({"streams": {}, "access_log": []}, f)
+    with _file_lock(DB_PATH):
+        _atomic_write_json(DB_PATH, _empty_db())
 
 def load_db():
     """Load db.json safely, reinitialize if missing or corrupted."""
-    if not os.path.exists(DB_PATH) or os.stat(DB_PATH).st_size == 0:
-        init_db()
-    with open(DB_PATH, 'r') as f:
-        try:
-            return json.load(f)
-        except json.JSONDecodeError:
-            print("[ERROR] db.json is corrupted or empty. Reinitializing.")
-            init_db()
-            return load_db()
+    with _file_lock(DB_PATH):
+        return _load_db_unlocked()
 
 def save_db(db):
-    """Write the current db dictionary back to db.json."""
-    with open(DB_PATH, 'w') as f:
-        json.dump(db, f, indent=2)
+    """Atomically replace db.json. Prefer targeted mutation helpers."""
+    with _file_lock(DB_PATH):
+        _atomic_write_json(DB_PATH, db)
 
 # --- channels.txt helpers ---
 
@@ -53,8 +108,19 @@ def read_channels_file():
 def write_channels_file(channels_dict):
     """Write dict {name: url} to channels.txt using comma delimiter."""
     lines = [f"{name}{CHANNELS_DELIM}{url}" for name, url in channels_dict.items()]
-    with open(CHANNELS_PATH, "w") as f:
-        f.write("\n".join(lines) + ("\n" if lines else ""))
+    content = "\n".join(lines) + ("\n" if lines else "")
+    with _file_lock(CHANNELS_PATH):
+        directory = os.path.dirname(os.path.abspath(CHANNELS_PATH))
+        fd, temp_path = tempfile.mkstemp(prefix=".channels-", suffix=".tmp", dir=directory)
+        try:
+            with os.fdopen(fd, "w") as temp_file:
+                temp_file.write(content)
+                temp_file.flush()
+                os.fsync(temp_file.fileno())
+            os.replace(temp_path, CHANNELS_PATH)
+        finally:
+            if os.path.exists(temp_path):
+                os.unlink(temp_path)
 
 # --- streams (db.json as working state) ---
 
@@ -66,34 +132,40 @@ def update_stream(
     status=None,
     last_error=None,
     resolved_live_url=None,
+    channel_url=None,
+    channel_id=None,
 ):
-    db = load_db()
-    existing = db.get("streams", {}).get(name, {})
-    stream = {
-        "url": url,
-        "m3u8": m3u8,
-        "channel": channel
-    }
-    if status:
-        stream["status"] = status
-    elif existing.get("status"):
-        stream["status"] = existing.get("status")
-    if last_error:
-        stream["last_error"] = last_error
-    if resolved_live_url:
-        stream["resolved_live_url"] = resolved_live_url
-    if existing.get("last_success"):
-        stream["last_success"] = existing.get("last_success")
-    if m3u8:
-        stream["last_success"] = datetime.utcnow().isoformat()
-    stream["last_checked"] = datetime.utcnow().isoformat()
-    db["streams"][name] = stream
-    save_db(db)
+    def mutate(data):
+        existing = data["streams"].get(name, {})
+        stream = {
+            "url": url,
+            "m3u8": m3u8,
+            "channel": channel,
+        }
+        if status:
+            stream["status"] = status
+        elif existing.get("status"):
+            stream["status"] = existing.get("status")
+        if last_error:
+            stream["last_error"] = last_error
+        for key, value in (
+            ("resolved_live_url", resolved_live_url),
+            ("channel_url", channel_url or existing.get("channel_url")),
+            ("channel_id", channel_id or existing.get("channel_id")),
+        ):
+            if value:
+                stream[key] = value
+        if existing.get("last_success"):
+            stream["last_success"] = existing.get("last_success")
+        if m3u8:
+            stream["last_success"] = datetime.utcnow().isoformat()
+        stream["last_checked"] = datetime.utcnow().isoformat()
+        data["streams"][name] = stream
+
+    _mutate_db(mutate)
 
 def delete_stream(name):
-    db = load_db()
-    db["streams"].pop(name, None)
-    save_db(db)
+    _mutate_db(lambda data: data["streams"].pop(name, None))
 
 def get_stream(name):
     stream = load_db()["streams"].get(name)
@@ -108,22 +180,17 @@ def streams_table():
 
 def log_access(name, ip):
     """Record an access event with channel, IP, timestamp, and m3u8."""
-    db = load_db()
-    stream = db.get("streams", {}).get(name, {})
-    channel = stream.get("channel", name)
-    m3u8 = stream.get("m3u8")
+    def mutate(data):
+        stream = data["streams"].get(name, {})
+        data["access_log"].append({
+            "name": name,
+            "channel": stream.get("channel", name),
+            "ip": ip,
+            "timestamp": datetime.utcnow().isoformat(),
+            "m3u8": stream.get("m3u8"),
+        })
 
-    if "access_log" not in db:
-        db["access_log"] = []
-
-    db["access_log"].append({
-        "name": name,
-        "channel": channel,
-        "ip": ip,
-        "timestamp": datetime.utcnow().isoformat(),
-        "m3u8": m3u8
-    })
-    save_db(db)
+    _mutate_db(mutate)
 
 def get_access_log():
     """Return the list of access log entries."""
@@ -131,10 +198,17 @@ def get_access_log():
 
 def prune_old_logs(days=7):
     """Remove log entries older than N days."""
-    db = load_db()
     cutoff = datetime.utcnow() - timedelta(days=days)
-    db["access_log"] = [
-        log for log in db.get("access_log", [])
-        if datetime.fromisoformat(log["timestamp"]) > cutoff
-    ]
-    save_db(db)
+    def mutate(data):
+        data["access_log"] = [
+            log for log in data["access_log"]
+            if datetime.fromisoformat(log["timestamp"]) > cutoff
+        ]
+
+    _mutate_db(mutate)
+
+
+def set_last_update(timestamp=None):
+    value = timestamp or datetime.utcnow().isoformat()
+    _mutate_db(lambda data: data.__setitem__("last_update", value))
+    return value
