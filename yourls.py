@@ -2,6 +2,7 @@ import json
 import logging
 import os
 from urllib.parse import urlencode
+from urllib.error import HTTPError
 from urllib.request import Request, urlopen
 
 logger = logging.getLogger("yourls")
@@ -29,7 +30,11 @@ def create_short_url(handle):
     ).encode()
     try:
         request = Request(api_url, data=payload, method="POST")
-        with urlopen(request, timeout=10) as response:
+        try:
+            response = urlopen(request, timeout=10)
+        except HTTPError as exc:
+            response = exc
+        with response:
             result = json.load(response)
         short_url = result.get("shorturl")
         if short_url:
