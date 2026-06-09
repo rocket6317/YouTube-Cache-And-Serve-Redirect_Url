@@ -99,6 +99,24 @@ class Stage2DashboardRouteTests(unittest.TestCase):
         self.assertIn(b"Select Live Stream", response.data)
         self.assertIn(b"Main Stage", response.data)
 
+    def test_dashboard_uses_configured_public_base_url(self):
+        with (
+            patch.dict(app_module.os.environ, {"PUBLIC_STREAM_BASE_URL": "https://stream.example.com"}),
+            patch.object(
+                app_module,
+                "streams_table",
+                return_value={"Now TV": {"url": "https://youtube.com/@now/live", "status": "ok"}},
+            ),
+            patch.object(app_module, "read_channel_configs", return_value={}),
+            patch.object(app_module, "load_db", return_value={}),
+            patch.object(app_module, "get_global_interval", return_value=5),
+        ):
+            response = self.client.get("/dashboard")
+        self.assertIn(
+            b"https://stream.example.com/stream?name=Now%20TV",
+            response.data,
+        )
+
     def test_add_rejects_normalized_collision_with_existing_handle(self):
         with (
             patch.object(

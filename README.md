@@ -102,8 +102,8 @@ New local handles are normalized to lowercase URL-safe slugs. Duplicate normaliz
 When YOURLS integration is configured, adding a stream also requests a short URL for its stable IPTV URL. The local handle is used as the preferred keyword:
 
 ```text
-https://stream.example.com/stream?name=sozcutv
-https://short.example.com/sozcutv
+https://stream.example.com/stream?name=example-channel
+https://short.example.com/example-channel
 ```
 
 YOURLS may return a different available keyword when the preferred keyword is already in use. Stream names containing spaces and other URL-sensitive characters are encoded in the destination URL, so a saved name such as `Now TV` continues to resolve correctly.

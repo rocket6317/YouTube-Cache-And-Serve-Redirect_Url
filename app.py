@@ -88,6 +88,7 @@ def dashboard():
         "dashboard.html",
         streams=streams,
         channel_configs=channel_configs,
+        stream_base_url=os.getenv("PUBLIC_STREAM_BASE_URL") or request.url_root.rstrip("/"),
         global_interval=get_global_interval(),
         environment_interval=UPDATE_INTERVAL_HOURS,
         last_update=lu_fmt,
