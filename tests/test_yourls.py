@@ -43,6 +43,34 @@ class YourlsTests(unittest.TestCase):
         with patch.dict(yourls.os.environ, {}, clear=True):
             self.assertIsNone(yourls.create_short_url("sozcutv"))
 
+    def test_create_short_url_encodes_spaces_and_uses_safe_keyword(self):
+        response = Mock()
+        response.__enter__ = Mock(return_value=response)
+        response.__exit__ = Mock(return_value=False)
+        response.read.return_value = json.dumps(
+            {"shorturl": "https://short.example.com/now-tv"}
+        ).encode()
+
+        with (
+            patch.dict(
+                yourls.os.environ,
+                {
+                    "YOURLS_API_URL": "http://yourls/yourls-api.php",
+                    "YOURLS_USER": "user",
+                    "YOURLS_PASS": "secret",
+                    "PUBLIC_STREAM_BASE_URL": "https://stream.example.com",
+                },
+                clear=True,
+            ),
+            patch.object(yourls, "urlopen", return_value=response) as urlopen,
+        ):
+            result = yourls.create_short_url("Now TV")
+
+        self.assertEqual(result, "https://short.example.com/now-tv")
+        request = urlopen.call_args.args[0]
+        self.assertIn(b"keyword=Now-TV", request.data)
+        self.assertIn(b"name%3DNow%2520TV", request.data)
+
     def test_existing_long_url_reuses_short_url_from_http_400_response(self):
         body = BytesIO(
             json.dumps(

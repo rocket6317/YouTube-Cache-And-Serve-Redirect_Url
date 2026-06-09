@@ -1,7 +1,7 @@
 import json
 import logging
 import os
-from urllib.parse import urlencode
+from urllib.parse import quote, urlencode
 from urllib.error import HTTPError
 from urllib.request import Request, urlopen
 
@@ -16,7 +16,8 @@ def create_short_url(handle):
     if not all((api_url, username, password, stream_base_url)):
         return None
 
-    long_url = f"{stream_base_url.rstrip('/')}/stream?name={handle}"
+    long_url = f"{stream_base_url.rstrip('/')}/stream?name={quote(handle, safe='')}"
+    keyword = handle.replace(" ", "-")
     payload = urlencode(
         {
             "username": username,
@@ -24,7 +25,7 @@ def create_short_url(handle):
             "action": "shorturl",
             "format": "json",
             "url": long_url,
-            "keyword": handle,
+            "keyword": keyword,
             "title": f"YouTube stream: {handle}",
         }
     ).encode()
