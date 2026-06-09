@@ -20,7 +20,7 @@ https://your-domain/stream?name=channelname
 - Channel `/streams` discovery for replacement live broadcast URLs
 - Automatic single-candidate and unique-title matching
 - Dashboard selection for ambiguous multiple live broadcasts
-- Optional YOURLS short URLs for newly added streams
+- Optional YOURLS short URLs for newly added streams, with saved dashboard links
 - On-demand repair when a configured stream has no cached M3U8
 - Shared per-stream repair with timeout and failed-repair cooldown
 - Shared global refresh lock to prevent overlapping refresh jobs
@@ -99,14 +99,18 @@ Per-stream controls:
 
 New local handles are normalized to lowercase URL-safe slugs. Duplicate normalized handles and non-YouTube source URLs are rejected. Existing handles remain unchanged for backward compatibility.
 
-When YOURLS integration is configured, adding a stream also requests its local handle as a short-link keyword. For example:
+When YOURLS integration is configured, adding a stream also requests a short URL for its stable IPTV URL. The local handle is used as the preferred keyword:
 
 ```text
 https://stream.example.com/stream?name=sozcutv
 https://short.example.com/sozcutv
 ```
 
-The returned short URL is saved with the stream and displayed below its stable IPTV URL. A YOURLS failure does not prevent the stream from being added.
+YOURLS may return a different available keyword when the preferred keyword is already in use. Stream names containing spaces and other URL-sensitive characters are encoded in the destination URL, so a saved name such as `Now TV` continues to resolve correctly.
+
+The returned short URL is saved with the stream and displayed below its stable IPTV URL. It remains attached to the stream during refresh and live-link repair operations. A YOURLS failure does not prevent the stream from being added or affect other configured streams.
+
+YOURLS links are created when new streams are added. Streams that existed before YOURLS was configured are not automatically backfilled; they can continue using their stable IPTV URLs unless short links are created separately.
 
 ## Redirect Usage
 
@@ -166,6 +170,10 @@ services:
     environment:
       - DATA_DIR=/data
       - YTDLP_EXTERNAL_JS=1
+      - PUBLIC_STREAM_BASE_URL=${PUBLIC_STREAM_BASE_URL:-}
+      - YOURLS_API_URL=${YOURLS_API_URL:-}
+      - YOURLS_USER=${YOURLS_USER:-}
+      - YOURLS_PASS=${YOURLS_PASS:-}
     volumes:
       - app_data:/data
 ```
@@ -251,6 +259,10 @@ YOURLS_API_URL=http://yourls-host/yourls-api.php
 YOURLS_USER=yourls-api-user
 YOURLS_PASS=yourls-api-password
 ```
+
+All four values must be configured to enable shortening. `PUBLIC_STREAM_BASE_URL` must be the externally reachable base URL for this redirector, without `/dashboard` or `/stream`.
+
+For each newly added stream, the app sends YOURLS the stable redirect URL rather than the temporary YouTube M3U8 URL. This means the short URL continues working when YouTube changes the broadcast URL or the cached M3U8 is refreshed. Existing matching YOURLS links are reused instead of duplicated.
 
 Keep YOURLS credentials in the deployment environment or Portainer stack configuration. Do not commit them to the repository.
 
