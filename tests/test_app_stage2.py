@@ -20,6 +20,8 @@ class Stage2DashboardRouteTests(unittest.TestCase):
             patch.object(app_module, "fetch_info", return_value=None),
             patch.object(app_module, "update_stream"),
             patch.object(app_module, "write_channels_file") as write_channels,
+            patch.object(app_module, "create_short_url", return_value="https://ur.example/my-atv-channel"),
+            patch.object(app_module, "set_stream_short_url") as set_short_url,
         ):
             response = self.client.post(
                 "/dashboard/add",
@@ -37,6 +39,10 @@ class Stage2DashboardRouteTests(unittest.TestCase):
                     "refresh_hours": 2,
                 }
             }
+        )
+        set_short_url.assert_called_once_with(
+            "my-atv-channel",
+            "https://ur.example/my-atv-channel",
         )
 
     def test_dashboard_renders_interval_and_failed_source_controls(self):

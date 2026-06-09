@@ -186,6 +186,7 @@ def update_stream(
             ("channel_url", channel_url or existing.get("channel_url")),
             ("channel_id", channel_id or existing.get("channel_id")),
             ("title", title or existing.get("title")),
+            ("short_url", existing.get("short_url")),
         ):
             if value:
                 stream[key] = value
@@ -220,6 +221,12 @@ def mark_stream_checked(name):
     def mutate(data):
         stream = data["streams"].setdefault(name, {})
         stream["last_checked"] = datetime.utcnow().isoformat()
+    _mutate_db(mutate)
+
+def set_stream_short_url(name, short_url):
+    def mutate(data):
+        stream = data["streams"].setdefault(name, {})
+        stream["short_url"] = short_url
     _mutate_db(mutate)
 
 def get_stream(name):

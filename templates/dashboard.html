@@ -87,7 +87,12 @@
                 <td>{{ data.get('channel', '—') }}</td>
                 <td>{{ name }}</td>
                 <td><a href="{{ data.get('url', '#') }}" target="_blank">{{ data.get('url', '—') }}</a></td>
-                <td><a href="https://stream.example.com/stream?name={{ name }}" target="_blank">https://stream.example.com/stream?name={{ name }}</a></td>
+                <td>
+                    <a href="https://stream.example.com/stream?name={{ name }}" target="_blank">https://stream.example.com/stream?name={{ name }}</a>
+                    {% if data.get('short_url') %}
+                    <div class="muted"><a href="{{ data.get('short_url') }}" target="_blank">{{ data.get('short_url') }}</a></div>
+                    {% endif %}
+                </td>
                 <td class="status">
                     {% set status = data.get('status', 'ok' if data.get('m3u8') else 'failed') %}
                     <div class="status-{{ status }}">{{ status.replace('_', ' ') }}</div>

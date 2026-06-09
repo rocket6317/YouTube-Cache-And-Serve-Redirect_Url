@@ -4,6 +4,7 @@ from flask import Flask, request, redirect, render_template, url_for, Response, 
 from datetime import datetime, timedelta
 from db import (
     get_stream, streams_table, update_stream, delete_stream, clear_stream_source,
+    set_stream_short_url,
     log_access, get_access_log,
     read_channels_file, read_channel_configs, write_channels_file, load_db
 )
@@ -19,6 +20,7 @@ from scheduler import (
 from stream_service import repair_stream, save_fetch_result
 from settings import get_global_interval, reset_global_interval, set_global_interval
 from validation import is_youtube_url, normalize_handle, parse_interval
+from yourls import create_short_url
 
 logger = logging.getLogger("app")
 logger.setLevel(logging.INFO)
@@ -132,7 +134,11 @@ def add():
 
         channels[name] = {"url": url, "refresh_hours": interval}
         write_channels_file(channels)
-        if info or repair_stream(name):
+        stream_available = bool(info) or repair_stream(name)
+        short_url = create_short_url(name)
+        if short_url:
+            set_stream_short_url(name, short_url)
+        if stream_available:
             flash(f"Added stream {name}.", "success")
         else:
             status = streams_table().get(name, {}).get("status")
@@ -140,6 +146,8 @@ def add():
                 flash(f"Added {name}; select the intended live stream.", "warning")
             else:
                 flash(f"Added {name}; no current live stream was found.", "warning")
+        if not short_url and os.getenv("YOURLS_API_URL"):
+            flash(f"Stream added, but a short URL could not be created for {name}.", "warning")
         return redirect(url_for("dashboard"))
     return render_template("add.html")
 

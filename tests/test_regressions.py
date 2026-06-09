@@ -201,6 +201,22 @@ class AtomicDatabaseTests(unittest.TestCase):
             "https://www.youtube.com/@channel99",
         )
 
+    def test_stream_refresh_preserves_short_url(self):
+        db.update_stream(
+            "atv",
+            "https://youtube.com/@atv/live",
+            "https://m3u8.test/first",
+            "ATV",
+        )
+        db.set_stream_short_url("atv", "https://ur.example/atv")
+        db.update_stream(
+            "atv",
+            "https://youtube.com/@atv/live",
+            "https://m3u8.test/second",
+            "ATV",
+        )
+        self.assertEqual(db.streams_table()["atv"]["short_url"], "https://ur.example/atv")
+
 
 if __name__ == "__main__":
     unittest.main()

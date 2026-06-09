@@ -20,6 +20,7 @@ https://your-domain/stream?name=channelname
 - Channel `/streams` discovery for replacement live broadcast URLs
 - Automatic single-candidate and unique-title matching
 - Dashboard selection for ambiguous multiple live broadcasts
+- Optional YOURLS short URLs for newly added streams
 - On-demand repair when a configured stream has no cached M3U8
 - Shared per-stream repair with timeout and failed-repair cooldown
 - Shared global refresh lock to prevent overlapping refresh jobs
@@ -97,6 +98,15 @@ Per-stream controls:
 - `Delete`: remove the stream
 
 New local handles are normalized to lowercase URL-safe slugs. Duplicate normalized handles and non-YouTube source URLs are rejected. Existing handles remain unchanged for backward compatibility.
+
+When YOURLS integration is configured, adding a stream also requests its local handle as a short-link keyword. For example:
+
+```text
+https://stream.example.com/stream?name=sozcutv
+https://short.example.com/sozcutv
+```
+
+The returned short URL is saved with the stream and displayed below its stable IPTV URL. A YOURLS failure does not prevent the stream from being added.
 
 ## Redirect Usage
 
@@ -232,6 +242,17 @@ YTDLP_EXTERNAL_JS=1
 ```
 
 The Dockerfile installs Deno so `yt-dlp` can use an external JavaScript runtime when YouTube extraction needs it.
+
+Optional YOURLS integration uses environment variables:
+
+```text
+PUBLIC_STREAM_BASE_URL=https://stream.example.com
+YOURLS_API_URL=http://yourls-host/yourls-api.php
+YOURLS_USER=yourls-api-user
+YOURLS_PASS=yourls-api-password
+```
+
+Keep YOURLS credentials in the deployment environment or Portainer stack configuration. Do not commit them to the repository.
 
 ## Health Check
 
