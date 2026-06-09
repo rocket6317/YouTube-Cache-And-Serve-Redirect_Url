@@ -178,7 +178,7 @@ def streams_table():
 
 # --- logging ---
 
-def log_access(name, ip):
+def log_access(name, ip, outcome="redirected"):
     """Record an access event with channel, IP, timestamp, and m3u8."""
     def mutate(data):
         stream = data["streams"].get(name, {})
@@ -188,6 +188,7 @@ def log_access(name, ip):
             "ip": ip,
             "timestamp": datetime.utcnow().isoformat(),
             "m3u8": stream.get("m3u8"),
+            "outcome": outcome,
         })
 
     _mutate_db(mutate)

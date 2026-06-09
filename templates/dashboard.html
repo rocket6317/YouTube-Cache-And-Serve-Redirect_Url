@@ -17,6 +17,9 @@
         .status-ok, .status-repaired { color: #137333; font-weight: 600; }
         .status-no_live_found, .status-failed { color: #b3261e; font-weight: 600; }
         .muted { color: #666; font-size: 12px; margin-top: 4px; }
+        .flash { padding: 10px 12px; margin-bottom: 12px; border: 1px solid #d7dce2; background: #f7f9fb; }
+        .flash-success { border-color: #9bc7a5; background: #eef8f0; }
+        .flash-warning { border-color: #e2c36f; background: #fff8e1; }
     </style>
     <script>
         function copyToClipboard(text) {
@@ -34,6 +37,10 @@
 </head>
 <body>
     <h1>YouTube Stream Redirect Dashboard 📺</h1>
+
+    {% for category, message in get_flashed_messages(with_categories=true) %}
+    <div class="flash flash-{{ category }}">{{ message }}</div>
+    {% endfor %}
 
     <div class="action-bar">
         <form action="{{ url_for('add') }}" method="get"><button type="submit">➕ Add Channel</button></form>

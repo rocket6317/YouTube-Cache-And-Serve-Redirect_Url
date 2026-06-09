@@ -3,7 +3,7 @@ import tempfile
 import threading
 import unittest
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 import db
 import fetcher
@@ -24,7 +24,15 @@ class StableChannelRepairTests(unittest.TestCase):
                 }
             return None
 
-        with patch.object(fetcher, "_extract_info", side_effect=fake_extract):
+        metadata_ydl = Mock()
+        metadata_ydl.__enter__ = Mock(return_value=metadata_ydl)
+        metadata_ydl.__exit__ = Mock(return_value=False)
+        metadata_ydl.extract_info.return_value = {}
+
+        with (
+            patch.object(fetcher, "_extract_info", side_effect=fake_extract),
+            patch.object(fetcher.yt_dlp, "YoutubeDL", return_value=metadata_ydl),
+        ):
             info = fetcher.repair_live_info(
                 old_url,
                 "atv",

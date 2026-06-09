@@ -1,42 +1,32 @@
 import logging
-from flask import Flask, request, redirect, render_template, url_for, Response
+import os
+from flask import Flask, request, redirect, render_template, url_for, Response, flash
 from datetime import datetime, timedelta
 from db import (
     get_stream, streams_table, update_stream, delete_stream,
     log_access, get_access_log,
-    read_channels_file, write_channels_file, load_db, set_last_update
+    read_channels_file, write_channels_file, load_db
 )
-from fetcher import fetch_info, repair_live_info
+from fetcher import fetch_info
 from config import UPDATE_INTERVAL_HOURS
-from scheduler import start_scheduler
+from repair_coordinator import RepairCoordinator
+from runtime_health import check_readiness
+from scheduler import (
+    refresh_from_channels_txt,
+    scheduler_running,
+    start_scheduler,
+)
+from stream_service import repair_stream, save_fetch_result
 
 logger = logging.getLogger("app")
 logger.setLevel(logging.INFO)
 
 app = Flask(__name__)
+app.secret_key = os.getenv("FLASK_SECRET_KEY", "youtube-redirector-dashboard")
+repair_coordinator = RepairCoordinator(repair_stream, cooldown_seconds=300)
 
 logger.info("Starting scheduler and reading channels.txt at launch...")
 start_scheduler()
-
-
-def save_fetch_result(name, original_url, info, update_channels=False):
-    new_url = info.get("source_url") or info.get("resolved_live_url") or original_url
-    update_stream(
-        name,
-        new_url,
-        info.get("m3u8"),
-        info.get("channel") or name,
-        status=info.get("status"),
-        last_error=info.get("last_error"),
-        resolved_live_url=info.get("resolved_live_url"),
-        channel_url=info.get("channel_url"),
-        channel_id=info.get("channel_id"),
-    )
-    if update_channels and new_url != original_url:
-        channels = read_channels_file()
-        channels[name] = new_url
-        write_channels_file(channels)
-    return new_url
 
 
 @app.route("/stream")
@@ -49,11 +39,29 @@ def stream():
     url = get_stream(name)
 
     if url:
-        log_access(name, ip)
+        log_access(name, ip, outcome="redirected")
         # Removed noisy INFO log line here
         return redirect(url)
-    logger.warning(f"Stream {name} not found for client {ip}")
-    return "Stream not found", 404
+
+    if name not in read_channels_file() and name not in streams_table():
+        logger.warning(f"Unknown stream {name} requested by client {ip}")
+        return "Stream not found", 404
+
+    outcome = repair_coordinator.request(name, timeout=30)
+    if outcome == "redirected":
+        url = get_stream(name)
+        if url:
+            log_access(name, ip, outcome="redirected")
+            return redirect(url)
+        outcome = "repair_failed"
+
+    log_access(name, ip, outcome=outcome)
+    logger.warning(f"Stream {name} unavailable for client {ip}: {outcome}")
+    return Response(
+        "Stream temporarily unavailable",
+        status=503,
+        headers={"Retry-After": "30"},
+    )
 
 @app.route("/dashboard")
 def dashboard():
@@ -81,26 +89,10 @@ def dashboard():
 @app.route("/dashboard/refresh", methods=["POST"])
 def refresh():
     logger.info("Manual dashboard refresh triggered")
-    channels = read_channels_file()
-    existing_streams = streams_table()
-    for name, url in channels.items():
-        info = fetch_info(url)
-        if info:
-            save_fetch_result(name, url, info)
-            logger.info(f"Updated {name} via manual refresh")
-        else:
-            existing = existing_streams.get(name, {})
-            repaired = repair_live_info(
-                url,
-                name,
-                known_channel_url=existing.get("channel_url"),
-                known_channel_id=existing.get("channel_id"),
-            )
-            save_fetch_result(name, url, repaired, update_channels=True)
-            logger.warning(f"Repair refresh result for {name}: {repaired.get('status')}")
-
-    set_last_update()
-
+    if refresh_from_channels_txt(source="manual"):
+        flash("Refresh completed.", "success")
+    else:
+        flash("Refresh already running.", "warning")
     return redirect(url_for("dashboard"))
 
 @app.route("/dashboard/add", methods=["GET", "POST"])
@@ -137,18 +129,10 @@ def check_live():
             stream_data = streams_table().get(name, {})
             url = stream_data.get("url")
         if url:
-            stream_data = streams_table().get(name, {})
-            info = repair_live_info(
-                url,
-                name,
-                known_channel_url=stream_data.get("channel_url"),
-                known_channel_id=stream_data.get("channel_id"),
-            )
-            new_url = save_fetch_result(name, url, info, update_channels=True)
-            logger.info(
-                f"Live check for {name}: {info.get('status')} "
-                f"({url} -> {new_url})"
-            )
+            if repair_stream(name):
+                flash(f"{name} live stream updated.", "success")
+            else:
+                flash(f"No live stream found for {name}.", "warning")
     return redirect(url_for("dashboard"))
 
 
@@ -206,5 +190,9 @@ def download_channels():
 
 @app.route("/health")
 def health():
-    # Simple healthcheck endpoint for Docker/Portainer
-    return "OK", 200
+    healthy = check_readiness(
+        db_loader=load_db,
+        data_dir=os.getenv("DATA_DIR", "."),
+        scheduler_running=scheduler_running,
+    )
+    return ("OK", 200) if healthy else ("UNHEALTHY", 503)

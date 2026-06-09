@@ -14,10 +14,16 @@ https://your-domain/stream?name=channelname
 - Dashboard to add, delete, refresh, repair, and inspect streams
 - `yt-dlp` based M3U8 extraction
 - Automatic scheduled refresh
+- Non-blocking startup refresh
 - Per-stream `Check Live` repair button
 - Automatic repair for changed YouTube live broadcast URLs
+- On-demand repair when a configured stream has no cached M3U8
+- Shared per-stream repair with timeout and failed-repair cooldown
+- Shared global refresh lock to prevent overlapping refresh jobs
 - Persistent YouTube channel ID and channel URL discovery
 - Atomic, locked database writes to protect the stream cache
+- Seven-day access-log retention
+- Readiness-aware health check
 - Access logs grouped by stream and client IP
 - Docker image published to GitHub Container Registry
 - Portainer-friendly `docker-compose.yml`
@@ -75,7 +81,11 @@ https://your-domain/stream?name=channelname
 http://localhost:6095/stream?name=channelname
 ```
 
-The client is redirected to the latest cached YouTube M3U8 URL. If a stream has no working M3U8, that one stream returns `404 Stream not found`.
+The client is redirected to the latest cached YouTube M3U8 URL.
+
+When a configured stream has no cached M3U8, `/stream` automatically starts or joins one background repair attempt for that stream. Requests wait up to 30 seconds. If repair cannot complete, the endpoint returns `503 Service Unavailable` with `Retry-After: 30`. Failed repairs enter a five-minute in-memory cooldown to reduce repeated YouTube queries.
+
+Unknown stream handles still return `404 Stream not found`.
 
 ## Data Files
 
@@ -197,6 +207,8 @@ Expected response:
 OK
 ```
 
+The health check verifies that the database is readable, the data directory is writable, and the scheduler is running. It does not require any YouTube stream to be online. Unhealthy responses return only `UNHEALTHY` with HTTP `503`; detailed reasons are written to Docker logs.
+
 ## Logging
 
 Logs are printed to stdout for Portainer/Docker log viewing. Typical events include:
@@ -209,6 +221,8 @@ Logs are printed to stdout for Portainer/Docker log viewing. Typical events incl
 ```
 
 Access logs are stored in `db.json` and visible from the dashboard.
+
+Access logs include request outcomes such as `redirected`, `repair_failed`, `repair_timeout`, and `cooldown`. Entries older than seven days are pruned during global refresh.
 
 ## Credits
 
