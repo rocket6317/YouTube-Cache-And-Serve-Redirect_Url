@@ -5,9 +5,20 @@
 </head>
 <body>
   <h1>Add Stream</h1>
+  {% for category, message in get_flashed_messages(with_categories=true) %}
+  <p>{{ message }}</p>
+  {% endfor %}
   <form action="/dashboard/add" method="post">
     <label>Name: <input type="text" name="name" required></label><br>
     <label>YouTube URL: <input type="url" name="url" required></label><br>
+    <label>Refresh interval:
+      <select name="refresh_hours">
+        <option value="default">Default</option>
+        {% for hours in range(1, 6) %}
+        <option value="{{ hours }}">{{ hours }} hour{% if hours != 1 %}s{% endif %}</option>
+        {% endfor %}
+      </select>
+    </label><br>
     <button type="submit">Add</button>
   </form>
   <a href="/dashboard">⬅️ Back to Dashboard</a>

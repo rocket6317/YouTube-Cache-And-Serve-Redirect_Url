@@ -99,15 +99,46 @@ def read_channels_file():
             if not line or line.startswith("#"):
                 continue
             parts = line.split(CHANNELS_DELIM)
-            if len(parts) == 2:
+            if len(parts) in (2, 3):
                 name, url = parts[0].strip(), parts[1].strip()
                 if name and url:
                     channels[name] = url
     return channels
 
+def read_channel_configs():
+    """Read channels.txt including optional per-stream refresh intervals."""
+    configs = {}
+    if not os.path.exists(CHANNELS_PATH):
+        return configs
+    with open(CHANNELS_PATH, "r") as channel_file:
+        for line in channel_file:
+            parts = [part.strip() for part in line.strip().split(CHANNELS_DELIM)]
+            if not parts or not parts[0] or parts[0].startswith("#") or len(parts) not in (2, 3):
+                continue
+            interval = None
+            if len(parts) == 3 and parts[2]:
+                try:
+                    candidate = int(parts[2])
+                    interval = candidate if 1 <= candidate <= 5 else None
+                except ValueError:
+                    pass
+            configs[parts[0]] = {"url": parts[1], "refresh_hours": interval}
+    return configs
+
 def write_channels_file(channels_dict):
     """Write dict {name: url} to channels.txt using comma delimiter."""
-    lines = [f"{name}{CHANNELS_DELIM}{url}" for name, url in channels_dict.items()]
+    lines = []
+    for name, value in channels_dict.items():
+        if isinstance(value, dict):
+            url = value["url"]
+            interval = value.get("refresh_hours")
+        else:
+            url = value
+            interval = None
+        line = f"{name}{CHANNELS_DELIM}{url}"
+        if interval is not None:
+            line += f"{CHANNELS_DELIM}{interval}"
+        lines.append(line)
     content = "\n".join(lines) + ("\n" if lines else "")
     with _file_lock(CHANNELS_PATH):
         directory = os.path.dirname(os.path.abspath(CHANNELS_PATH))
@@ -166,6 +197,25 @@ def update_stream(
 
 def delete_stream(name):
     _mutate_db(lambda data: data["streams"].pop(name, None))
+
+def clear_stream_source(name, url):
+    def mutate(data):
+        existing = data["streams"].get(name, {})
+        data["streams"][name] = {
+            "url": url,
+            "m3u8": None,
+            "channel": existing.get("channel") or name,
+            "status": "failed",
+            "last_error": "Source changed; validation pending",
+            "last_checked": datetime.utcnow().isoformat(),
+        }
+    _mutate_db(mutate)
+
+def mark_stream_checked(name):
+    def mutate(data):
+        stream = data["streams"].setdefault(name, {})
+        stream["last_checked"] = datetime.utcnow().isoformat()
+    _mutate_db(mutate)
 
 def get_stream(name):
     stream = load_db()["streams"].get(name)

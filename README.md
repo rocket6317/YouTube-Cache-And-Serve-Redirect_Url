@@ -20,6 +20,11 @@ https://your-domain/stream?name=channelname
 - On-demand repair when a configured stream has no cached M3U8
 - Shared per-stream repair with timeout and failed-repair cooldown
 - Shared global refresh lock to prevent overlapping refresh jobs
+- Hourly due-stream scheduling with configurable global and per-stream intervals
+- Persisted dashboard refresh setting with environment-default reset
+- Inline source editing for failed streams
+- Normalized new handles and YouTube-only source validation
+- Paginated access logs
 - Persistent YouTube channel ID and channel URL discovery
 - Atomic, locked database writes to protect the stream cache
 - Seven-day access-log retention
@@ -179,11 +184,22 @@ Local runtime files default to the current directory unless `DATA_DIR` is set.
 
 ## Configuration
 
-Refresh interval is configured in `config.py`:
+The environment default is configured with:
 
-```python
-UPDATE_INTERVAL_HOURS = 6
+```text
+UPDATE_INTERVAL_HOURS=5
 ```
+
+Allowed values are whole hours from `1` through `5`. The dashboard can persist an override in `/data/settings.json` or reset to the environment default.
+
+Each stream can optionally override the global interval using a third `channels.txt` column:
+
+```text
+atv,https://www.youtube.com/@atvturkiye/live,2
+earthtv,https://www.youtube.com/watch?v=HfgIFGbdGJ0
+```
+
+The scheduler checks hourly and refreshes only streams whose configured interval has elapsed. `Refresh` on the dashboard always refreshes every stream immediately.
 
 The Docker image also sets:
 

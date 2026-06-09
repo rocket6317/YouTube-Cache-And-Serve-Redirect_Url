@@ -145,10 +145,10 @@ class GlobalRefreshLockTests(unittest.TestCase):
         with (
             patch.object(
                 scheduler,
-                "read_channels_file",
+                "read_channel_configs",
                 return_value={
-                    "bad": "https://youtube.test/bad",
-                    "good": "https://youtube.test/good",
+                    "bad": {"url": "https://youtube.test/bad", "refresh_hours": None},
+                    "good": {"url": "https://youtube.test/good", "refresh_hours": None},
                 },
             ),
             patch.object(scheduler, "streams_table", return_value={}),
@@ -161,6 +161,7 @@ class GlobalRefreshLockTests(unittest.TestCase):
                 ],
             ) as refresh_stream,
             patch.object(scheduler, "prune_old_logs"),
+            patch.object(scheduler, "mark_stream_checked"),
             patch.object(scheduler, "set_last_update", return_value="now"),
         ):
             self.assertTrue(scheduler.refresh_from_channels_txt(source="test"))

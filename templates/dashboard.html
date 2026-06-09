@@ -20,6 +20,9 @@
         .flash { padding: 10px 12px; margin-bottom: 12px; border: 1px solid #d7dce2; background: #f7f9fb; }
         .flash-success { border-color: #9bc7a5; background: #eef8f0; }
         .flash-warning { border-color: #e2c36f; background: #fff8e1; }
+        .inline-form { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+        input, select { padding: 7px; border: 1px solid #bbb; border-radius: 4px; max-width: 100%; }
+        .settings { padding: 12px 0; border-top: 1px solid #ddd; border-bottom: 1px solid #ddd; margin-bottom: 16px; }
     </style>
     <script>
         function copyToClipboard(text) {
@@ -49,6 +52,19 @@
         <form action="{{ url_for('logs') }}" method="get"><button type="submit">📜 View Access Logs</button></form>
     </div>
 
+    <div class="settings">
+        <form class="inline-form" action="{{ url_for('update_settings') }}" method="post">
+            <strong>Global refresh:</strong>
+            <select name="update_interval_hours">
+                {% for hours in range(1, 6) %}
+                <option value="{{ hours }}" {% if hours == global_interval %}selected{% endif %}>{{ hours }} hour{% if hours != 1 %}s{% endif %}</option>
+                {% endfor %}
+            </select>
+            <button type="submit">Save</button>
+            <button type="submit" name="reset" value="1">Reset to {{ environment_interval }} hours</button>
+        </form>
+    </div>
+
     <p>Last update: {{ last_update if last_update else '—' }} | Next update: {{ next_update if next_update else '—' }}</p>
 
     {% if streams and streams|length > 0 %}
@@ -61,7 +77,8 @@
                 <th style="width: 18%;">IPTV Local URL</th>
                 <th style="width: 10%;">Status</th>
                 <th style="width: 10%;">Redirect URL</th>
-                <th style="width: 10%;">Actions</th>
+                <th style="width: 13%;">Interval</th>
+                <th style="width: 17%;">Actions</th>
             </tr>
         </thead>
         <tbody>
@@ -83,11 +100,31 @@
                     <button type="button" onclick="downloadM3U8('{{ name }}', '{{ data.get('m3u8', '') }}')">⬇️ Download</button>
                 </td>
                 <td>
+                    {% set config = channel_configs.get(name, {}) %}
+                    <form class="inline-form" action="{{ url_for('update_interval') }}" method="post">
+                        <input type="hidden" name="name" value="{{ name }}">
+                        <select name="refresh_hours">
+                            <option value="default" {% if config.get('refresh_hours') is none %}selected{% endif %}>Default ({{ global_interval }}h)</option>
+                            {% for hours in range(1, 6) %}
+                            <option value="{{ hours }}" {% if config.get('refresh_hours') == hours %}selected{% endif %}>{{ hours }}h</option>
+                            {% endfor %}
+                        </select>
+                        <button type="submit">Save</button>
+                    </form>
+                </td>
+                <td>
                     <div class="actions">
                     <form action="{{ url_for('check_live') }}" method="post">
                         <input type="hidden" name="name" value="{{ name }}">
                         <button type="submit">🔎 Check Live</button>
                     </form>
+                    {% if status in ['failed', 'no_live_found'] %}
+                    <form class="inline-form" action="{{ url_for('edit_source') }}" method="post">
+                        <input type="hidden" name="name" value="{{ name }}">
+                        <input type="url" name="url" value="{{ config.get('url', data.get('url', '')) }}" required>
+                        <button type="submit">Edit Source</button>
+                    </form>
+                    {% endif %}
                     <form action="{{ url_for('delete') }}" method="post">
                         <input type="hidden" name="name" value="{{ name }}">
                         <button type="submit">🗑️ Delete</button>
@@ -102,3 +139,4 @@
     <div class="empty">No streams found. Click “➕ Add Channel” to create one, or “🔄 Refresh” to reload from channels.txt.</div>
     {% endif %}
 </body>
+</html>

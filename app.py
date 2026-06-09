@@ -3,9 +3,9 @@ import os
 from flask import Flask, request, redirect, render_template, url_for, Response, flash
 from datetime import datetime, timedelta
 from db import (
-    get_stream, streams_table, update_stream, delete_stream,
+    get_stream, streams_table, update_stream, delete_stream, clear_stream_source,
     log_access, get_access_log,
-    read_channels_file, write_channels_file, load_db
+    read_channels_file, read_channel_configs, write_channels_file, load_db
 )
 from fetcher import fetch_info
 from config import UPDATE_INTERVAL_HOURS
@@ -17,6 +17,8 @@ from scheduler import (
     start_scheduler,
 )
 from stream_service import repair_stream, save_fetch_result
+from settings import get_global_interval, reset_global_interval, set_global_interval
+from validation import is_youtube_url, normalize_handle, parse_interval
 
 logger = logging.getLogger("app")
 logger.setLevel(logging.INFO)
@@ -66,6 +68,7 @@ def stream():
 @app.route("/dashboard")
 def dashboard():
     streams = streams_table()
+    channel_configs = read_channel_configs()
     db = load_db()
     lu = db.get("last_update")
     nu = None
@@ -74,7 +77,7 @@ def dashboard():
 
     if lu:
         lu_dt = datetime.fromisoformat(lu)
-        nu_dt = lu_dt + timedelta(hours=UPDATE_INTERVAL_HOURS)
+        nu_dt = lu_dt + timedelta(hours=get_global_interval())
         lu_fmt = lu_dt.strftime("%H:%M:%S on %d-%m-%Y")
         nu_fmt = nu_dt.strftime("%H:%M:%S on %d-%m-%Y")
 
@@ -82,6 +85,9 @@ def dashboard():
     return render_template(
         "dashboard.html",
         streams=streams,
+        channel_configs=channel_configs,
+        global_interval=get_global_interval(),
+        environment_interval=UPDATE_INTERVAL_HOURS,
         last_update=lu_fmt,
         next_update=nu_fmt
     )
@@ -89,7 +95,7 @@ def dashboard():
 @app.route("/dashboard/refresh", methods=["POST"])
 def refresh():
     logger.info("Manual dashboard refresh triggered")
-    if refresh_from_channels_txt(source="manual"):
+    if refresh_from_channels_txt(source="manual", force=True):
         flash("Refresh completed.", "success")
     else:
         flash("Refresh already running.", "warning")
@@ -98,10 +104,23 @@ def refresh():
 @app.route("/dashboard/add", methods=["GET", "POST"])
 def add():
     if request.method == "POST":
-        name = request.form.get("name", "").strip()
+        name = normalize_handle(request.form.get("name", ""))
         url = request.form.get("url", "").strip()
+        try:
+            interval = parse_interval(request.form.get("refresh_hours"))
+        except (ValueError, TypeError):
+            flash("Refresh interval must be Default or between 1 and 5 hours.", "warning")
+            return redirect(url_for("add"))
         if not name or not url:
-            return redirect(url_for("dashboard"))
+            flash("Handle and YouTube URL are required.", "warning")
+            return redirect(url_for("add"))
+        channels = read_channel_configs()
+        if any(normalize_handle(existing_name) == name for existing_name in channels):
+            flash(f"Handle '{name}' already exists.", "warning")
+            return redirect(url_for("add"))
+        if not is_youtube_url(url):
+            flash("Source must be a valid YouTube URL.", "warning")
+            return redirect(url_for("add"))
 
         info = fetch_info(url)
         if info:
@@ -111,10 +130,9 @@ def add():
             update_stream(name, url, None, None, status="failed", last_error="Initial fetch failed")
             logger.warning(f"Failed to add stream {name}")
 
-        channels = read_channels_file()
-        channels[name] = url
+        channels[name] = {"url": url, "refresh_hours": interval}
         write_channels_file(channels)
-
+        flash(f"Added stream {name}.", "success")
         return redirect(url_for("dashboard"))
     return render_template("add.html")
 
@@ -141,16 +159,77 @@ def delete():
     name = request.form.get("name", "").strip()
     if name:
         delete_stream(name)
-        channels = read_channels_file()
+        channels = read_channel_configs()
         if name in channels:
             del channels[name]
             write_channels_file(channels)
         logger.info(f"Deleted stream {name}")
+        flash(f"Deleted stream {name}.", "success")
+    return redirect(url_for("dashboard"))
+
+
+@app.route("/dashboard/settings", methods=["POST"])
+def update_settings():
+    if request.form.get("reset"):
+        reset_global_interval()
+        flash(f"Global refresh reset to environment default ({UPDATE_INTERVAL_HOURS} hours).", "success")
+    else:
+        try:
+            set_global_interval(request.form.get("update_interval_hours"))
+            flash("Global refresh interval updated.", "success")
+        except (ValueError, TypeError):
+            flash("Global refresh interval must be between 1 and 5 hours.", "warning")
+    return redirect(url_for("dashboard"))
+
+
+@app.route("/dashboard/interval", methods=["POST"])
+def update_interval():
+    name = request.form.get("name", "").strip()
+    configs = read_channel_configs()
+    if name not in configs:
+        flash("Stream not found.", "warning")
+        return redirect(url_for("dashboard"))
+    try:
+        configs[name]["refresh_hours"] = parse_interval(request.form.get("refresh_hours"))
+        write_channels_file(configs)
+        flash(f"Refresh interval updated for {name}.", "success")
+    except (ValueError, TypeError):
+        flash("Refresh interval must be Default or between 1 and 5 hours.", "warning")
+    return redirect(url_for("dashboard"))
+
+
+@app.route("/dashboard/edit-source", methods=["POST"])
+def edit_source():
+    name = request.form.get("name", "").strip()
+    url = request.form.get("url", "").strip()
+    streams = streams_table()
+    configs = read_channel_configs()
+    stream_data = streams.get(name, {})
+    status = stream_data.get("status", "failed" if not stream_data.get("m3u8") else "ok")
+    if name not in configs or status not in ("failed", "no_live_found"):
+        flash("Source editing is available only for failed streams.", "warning")
+        return redirect(url_for("dashboard"))
+    if not is_youtube_url(url):
+        flash("Source must be a valid YouTube URL.", "warning")
+        return redirect(url_for("dashboard"))
+    configs[name]["url"] = url
+    write_channels_file(configs)
+    clear_stream_source(name, url)
+    if repair_stream(name):
+        flash(f"Source updated and live stream found for {name}.", "success")
+    else:
+        flash(f"Source updated for {name}; no live stream is currently available.", "warning")
     return redirect(url_for("dashboard"))
 
 @app.route("/logs")
 def logs():
-    raw_logs = get_access_log()
+    try:
+        page = max(1, int(request.args.get("page", "1")))
+    except ValueError:
+        page = 1
+    all_logs = sorted(get_access_log(), key=lambda entry: entry.get("timestamp", ""), reverse=True)
+    start = (page - 1) * 200
+    raw_logs = all_logs[start:start + 200]
     grouped = {}
 
     for log in raw_logs:
@@ -176,12 +255,24 @@ def logs():
         grouped[channel][ip].append({"timestamp": ts_fmt})
 
     logger.info("Logs accessed")
-    return render_template("logs.html", grouped_logs=grouped)
+    return render_template(
+        "logs.html",
+        grouped_logs=grouped,
+        page=page,
+        has_previous=page > 1,
+        has_next=start + 200 < len(all_logs),
+    )
 
 @app.route("/download_channels")
 def download_channels():
-    channels = read_channels_file()
-    content = "\n".join([f"{name},{url}" for name, url in channels.items()])
+    channels = read_channel_configs()
+    lines = []
+    for name, config in channels.items():
+        line = f"{name},{config['url']}"
+        if config.get("refresh_hours") is not None:
+            line += f",{config['refresh_hours']}"
+        lines.append(line)
+    content = "\n".join(lines)
     return Response(
         content,
         mimetype="text/plain",
