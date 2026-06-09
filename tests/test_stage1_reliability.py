@@ -42,6 +42,18 @@ class RepairCoordinatorTests(unittest.TestCase):
         self.assertEqual(calls, ["atv"])
         self.assertEqual(outcomes, ["redirected", "redirected"])
 
+    def test_request_immediately_after_success_reuses_result(self):
+        calls = []
+
+        def repair(name):
+            calls.append(name)
+            return True
+
+        coordinator = RepairCoordinator(repair, success_grace_seconds=5)
+        self.assertEqual(coordinator.request("atv", timeout=1), "redirected")
+        self.assertEqual(coordinator.request("atv", timeout=1), "redirected")
+        self.assertEqual(calls, ["atv"])
+
     def test_timeout_does_not_cancel_background_repair(self):
         release = threading.Event()
 

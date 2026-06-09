@@ -6,9 +6,16 @@ from concurrent.futures import ThreadPoolExecutor, TimeoutError
 class RepairCoordinator:
     """Share one background repair per stream and rate-limit failed retries."""
 
-    def __init__(self, repair_func, cooldown_seconds=300, max_workers=4):
+    def __init__(
+        self,
+        repair_func,
+        cooldown_seconds=300,
+        success_grace_seconds=5,
+        max_workers=4,
+    ):
         self._repair_func = repair_func
         self._cooldown_seconds = cooldown_seconds
+        self._success_grace_seconds = success_grace_seconds
         self._executor = ThreadPoolExecutor(
             max_workers=max_workers,
             thread_name_prefix="stream-repair",
@@ -21,8 +28,10 @@ class RepairCoordinator:
         with self._lock:
             state = self._states.setdefault(
                 name,
-                {"future": None, "cooldown_until": 0},
+                {"future": None, "cooldown_until": 0, "success_until": 0},
             )
+            if state["success_until"] > now:
+                return "redirected"
             if state["cooldown_until"] > now:
                 return "cooldown"
 
@@ -34,6 +43,7 @@ class RepairCoordinator:
                     succeeded = False
                 state["future"] = None
                 if succeeded:
+                    state["success_until"] = now + self._success_grace_seconds
                     return "redirected"
                 state["cooldown_until"] = now + self._cooldown_seconds
                 return "cooldown"
@@ -53,7 +63,9 @@ class RepairCoordinator:
             state = self._states[name]
             if state["future"] is future:
                 state["future"] = None
-            if not succeeded:
+            if succeeded:
+                state["success_until"] = time.monotonic() + self._success_grace_seconds
+            else:
                 state["cooldown_until"] = time.monotonic() + self._cooldown_seconds
 
         return "redirected" if succeeded else "repair_failed"
