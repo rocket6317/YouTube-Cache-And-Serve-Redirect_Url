@@ -15,7 +15,7 @@
         .actions { display: flex; flex-wrap: wrap; gap: 6px; }
         .status { font-size: 13px; }
         .status-ok, .status-repaired { color: #137333; font-weight: 600; }
-        .status-no_live_found, .status-failed { color: #b3261e; font-weight: 600; }
+        .status-no_live_found, .status-failed, .status-selection_required { color: #b3261e; font-weight: 600; }
         .muted { color: #666; font-size: 12px; margin-top: 4px; }
         .flash { padding: 10px 12px; margin-bottom: 12px; border: 1px solid #d7dce2; background: #f7f9fb; }
         .flash-success { border-color: #9bc7a5; background: #eef8f0; }
@@ -123,6 +123,17 @@
                         <input type="hidden" name="name" value="{{ name }}">
                         <input type="url" name="url" value="{{ config.get('url', data.get('url', '')) }}" required>
                         <button type="submit">Edit Source</button>
+                    </form>
+                    {% endif %}
+                    {% if status == 'selection_required' and data.get('live_candidates') %}
+                    <form class="inline-form" action="{{ url_for('select_live') }}" method="post">
+                        <input type="hidden" name="name" value="{{ name }}">
+                        <select name="url" required>
+                            {% for candidate in data.get('live_candidates', []) %}
+                            <option value="{{ candidate.get('url') }}">{{ candidate.get('title') }} — {{ candidate.get('url') }}</option>
+                            {% endfor %}
+                        </select>
+                        <button type="submit">Select Live Stream</button>
                     </form>
                     {% endif %}
                     <form action="{{ url_for('delete') }}" method="post">

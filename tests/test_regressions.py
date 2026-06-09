@@ -19,6 +19,7 @@ class StableChannelRepairTests(unittest.TestCase):
                 return {
                     "url": "https://example.com/atv.m3u8",
                     "channel": "atv",
+                    "is_live": True,
                     "channel_id": "UC-atv",
                     "channel_url": "https://www.youtube.com/@atvturkiye",
                 }
@@ -45,6 +46,102 @@ class StableChannelRepairTests(unittest.TestCase):
         self.assertEqual(info["channel_url"], "https://www.youtube.com/@atvturkiye")
         self.assertEqual(info["channel_id"], "UC-atv")
         self.assertTrue(info["m3u8"])
+
+    def test_streams_discovery_auto_selects_only_live_candidate(self):
+        old_url = "https://www.youtube.com/watch?v=old"
+        streams_url = "https://www.youtube.com/@nowtvturkiye/streams"
+
+        metadata = {
+            "title": "NOW Canli Yayin",
+            "channel_url": "https://www.youtube.com/@nowtvturkiye",
+            "channel_id": "UC-now",
+        }
+        playlist = {
+            "entries": [
+                {"url": "https://www.youtube.com/watch?v=ended", "title": "NOW Canli Yayin"},
+                {"url": "https://www.youtube.com/watch?v=current", "title": "NOW Canli Yayin"},
+            ]
+        }
+
+        def extract(url, channel_name=None):
+            if url == old_url:
+                return None
+            if url == streams_url:
+                return playlist
+            if url.endswith("current"):
+                return {
+                    "url": "https://example.com/current.m3u8",
+                    "webpage_url": url,
+                    "title": "NOW Canli Yayin",
+                    "is_live": True,
+                    "live_status": "is_live",
+                    "channel_url": "https://www.youtube.com/@nowtvturkiye",
+                    "channel_id": "UC-now",
+                }
+            if url.endswith("ended"):
+                return {"url": "https://example.com/ended.mp4", "is_live": False}
+            return None
+
+        with (
+            patch.object(fetcher, "_extract_info", side_effect=extract),
+            patch.object(fetcher, "_read_metadata", return_value=metadata),
+            patch.object(fetcher, "_extract_flat_playlist", return_value=playlist),
+        ):
+            info = fetcher.repair_live_info(old_url, "now")
+
+        self.assertEqual(info["status"], "repaired")
+        self.assertEqual(info["source_url"], "https://www.youtube.com/watch?v=current")
+
+    def test_multiple_live_candidates_require_selection_when_titles_are_ambiguous(self):
+        old_url = "https://www.youtube.com/watch?v=old"
+        metadata = {
+            "title": "Tomorrowland Live",
+            "channel_url": "https://www.youtube.com/@tomorrowland",
+            "channel_id": "UC-tomorrowland",
+        }
+        playlist = {
+            "entries": [
+                {"url": "https://www.youtube.com/watch?v=stage-a", "title": "Main Stage"},
+                {"url": "https://www.youtube.com/watch?v=stage-b", "title": "Freedom Stage"},
+            ]
+        }
+
+        def extract(url, channel_name=None):
+            if url == old_url:
+                return None
+            if "watch?v=stage-" in url:
+                return {
+                    "url": f"https://example.com/{url[-1]}.m3u8",
+                    "webpage_url": url,
+                    "title": "Main Stage" if url.endswith("a") else "Freedom Stage",
+                    "is_live": True,
+                    "live_status": "is_live",
+                    "channel_url": "https://www.youtube.com/@tomorrowland",
+                    "channel_id": "UC-tomorrowland",
+                }
+            return None
+
+        with (
+            patch.object(fetcher, "_extract_info", side_effect=extract),
+            patch.object(fetcher, "_read_metadata", return_value=metadata),
+            patch.object(fetcher, "_extract_flat_playlist", return_value=playlist),
+        ):
+            info = fetcher.repair_live_info(old_url, "tomorrowland")
+
+        self.assertEqual(info["status"], "selection_required")
+        self.assertEqual(len(info["live_candidates"]), 2)
+        self.assertIsNone(info["m3u8"])
+
+    def test_multiple_live_candidates_auto_select_unique_title_match(self):
+        candidates = [
+            {"title": "Tomorrowland Main Stage Live"},
+            {"title": "Tomorrowland Freedom Stage Live"},
+        ]
+        selected = fetcher._select_live_candidate(
+            candidates,
+            "Tomorrowland Freedom Stage Live",
+        )
+        self.assertEqual(selected["title"], "Tomorrowland Freedom Stage Live")
 
 
 class AtomicDatabaseTests(unittest.TestCase):

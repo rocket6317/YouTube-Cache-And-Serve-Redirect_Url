@@ -132,7 +132,14 @@ def add():
 
         channels[name] = {"url": url, "refresh_hours": interval}
         write_channels_file(channels)
-        flash(f"Added stream {name}.", "success")
+        if info or repair_stream(name):
+            flash(f"Added stream {name}.", "success")
+        else:
+            status = streams_table().get(name, {}).get("status")
+            if status == "selection_required":
+                flash(f"Added {name}; select the intended live stream.", "warning")
+            else:
+                flash(f"Added {name}; no current live stream was found.", "warning")
         return redirect(url_for("dashboard"))
     return render_template("add.html")
 
@@ -219,6 +226,35 @@ def edit_source():
         flash(f"Source updated and live stream found for {name}.", "success")
     else:
         flash(f"Source updated for {name}; no live stream is currently available.", "warning")
+    return redirect(url_for("dashboard"))
+
+
+@app.route("/dashboard/select-live", methods=["POST"])
+def select_live():
+    name = request.form.get("name", "").strip()
+    selected_url = request.form.get("url", "").strip()
+    stream = streams_table().get(name, {})
+    configs = read_channel_configs()
+    allowed_urls = {
+        candidate.get("url")
+        for candidate in stream.get("live_candidates", [])
+        if candidate.get("url")
+    }
+    if name not in configs or selected_url not in allowed_urls:
+        flash("Live stream selection is no longer available. Check Live again.", "warning")
+        return redirect(url_for("dashboard"))
+    info = fetch_info(selected_url, name)
+    if not info or not (info.get("is_live") or info.get("live_status") == "is_live"):
+        flash("The selected broadcast is no longer live. Check Live again.", "warning")
+        return redirect(url_for("dashboard"))
+    save_fetch_result(
+        name,
+        configs[name]["url"],
+        info,
+        channels=configs,
+        update_channels=True,
+    )
+    flash(f"Selected live stream for {name}.", "success")
     return redirect(url_for("dashboard"))
 
 @app.route("/logs")

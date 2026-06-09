@@ -23,6 +23,8 @@ def save_fetch_result(name, original_url, info, channels=None, update_channels=F
         resolved_live_url=info.get("resolved_live_url"),
         channel_url=info.get("channel_url"),
         channel_id=info.get("channel_id"),
+        title=info.get("title"),
+        live_candidates=info.get("live_candidates"),
     )
     if update_channels and new_url != original_url:
         current_channels = channels if channels is not None else read_channel_configs()
@@ -50,6 +52,7 @@ def repair_stream(name, channels=None):
         name,
         known_channel_url=stream.get("channel_url"),
         known_channel_id=stream.get("channel_id"),
+        known_title=stream.get("title"),
     )
     save_fetch_result(
         name,
@@ -73,6 +76,7 @@ def refresh_stream(name, url, channels=None, existing=None):
         name,
         known_channel_url=stream.get("channel_url"),
         known_channel_id=stream.get("channel_id"),
+        known_title=stream.get("title"),
     )
     save_fetch_result(
         name,

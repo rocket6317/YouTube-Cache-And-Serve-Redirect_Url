@@ -1,6 +1,6 @@
 # YouTube Livestream Redirector Improvement Plan
 
-Status: Stage 1 deployed; Stage 2 implemented and locally verified on `codex/stage2-dashboard-scheduling`, production deployment pending
+Status: Stages 1 and 2 deployed; live-candidate discovery enhancement implemented and locally verified on `codex/live-candidate-discovery`, production deployment pending
 Created: 2026-06-09  
 Implementation approach: Two staged releases
 

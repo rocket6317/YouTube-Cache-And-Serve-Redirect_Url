@@ -17,6 +17,9 @@ https://your-domain/stream?name=channelname
 - Non-blocking startup refresh
 - Per-stream `Check Live` repair button
 - Automatic repair for changed YouTube live broadcast URLs
+- Channel `/streams` discovery for replacement live broadcast URLs
+- Automatic single-candidate and unique-title matching
+- Dashboard selection for ambiguous multiple live broadcasts
 - On-demand repair when a configured stream has no cached M3U8
 - Shared per-stream repair with timeout and failed-repair cooldown
 - Shared global refresh lock to prevent overlapping refresh jobs
@@ -40,7 +43,8 @@ Some YouTube livestreams keep the same channel but change their `watch?v=...` br
 This app handles that in two ways:
 
 1. It first tries the saved URL.
-2. If the saved URL fails, it tries to discover the channel's current live page, including:
+2. If the saved URL fails, it checks recent broadcasts from the channel's `/streams` page and verifies which entries are currently live.
+3. It also tries to discover the channel's current live page, including:
    - `https://www.youtube.com/@handle/live`
    - `https://www.youtube.com/channel/CHANNEL_ID/live`
    - `https://www.youtube.com/c/name/live`
@@ -50,6 +54,8 @@ If a new live stream is found, the app updates both:
 
 - `db.json`, for the current cached redirect
 - `channels.txt`, so the repair survives container restarts
+
+If one current live broadcast is found, it is selected automatically. When multiple broadcasts are live, the app automatically selects only a uniquely strong title match to the previous broadcast. Ambiguous choices are shown in a `Select Live Stream` dropdown on the dashboard.
 
 If one stream cannot be repaired, it is marked `no_live_found`. Other streams continue to refresh and serve normally.
 

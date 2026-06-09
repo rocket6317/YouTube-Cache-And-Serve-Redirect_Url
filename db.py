@@ -165,6 +165,8 @@ def update_stream(
     resolved_live_url=None,
     channel_url=None,
     channel_id=None,
+    title=None,
+    live_candidates=None,
 ):
     def mutate(data):
         existing = data["streams"].get(name, {})
@@ -183,9 +185,12 @@ def update_stream(
             ("resolved_live_url", resolved_live_url),
             ("channel_url", channel_url or existing.get("channel_url")),
             ("channel_id", channel_id or existing.get("channel_id")),
+            ("title", title or existing.get("title")),
         ):
             if value:
                 stream[key] = value
+        if live_candidates:
+            stream["live_candidates"] = live_candidates
         if existing.get("last_success"):
             stream["last_success"] = existing.get("last_success")
         if m3u8:
