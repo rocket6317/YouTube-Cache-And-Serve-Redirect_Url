@@ -40,11 +40,11 @@ https://your-domain/stream?name=channelname
 
 Some YouTube livestreams keep the same channel but change their `watch?v=...` broadcast URL. When that happens, an old saved video URL can stop returning a valid M3U8 link.
 
-This app handles that in two ways:
+This app handles that through a staged repair flow:
 
-1. It first tries the saved URL.
-2. If the saved URL fails, it checks recent broadcasts from the channel's `/streams` page and verifies which entries are currently live.
-3. It also tries to discover the channel's current live page, including:
+1. It first tries the saved URL and accepts it only when YouTube reports it as currently live.
+2. If the saved URL fails or has ended, it checks recent broadcasts from the channel's `/streams` page and verifies which entries are currently live.
+3. It also checks the channel's current `/live` page, including:
    - `https://www.youtube.com/@handle/live`
    - `https://www.youtube.com/channel/CHANNEL_ID/live`
    - `https://www.youtube.com/c/name/live`
@@ -55,11 +55,20 @@ If a new live stream is found, the app updates both:
 - `db.json`, for the current cached redirect
 - `channels.txt`, so the repair survives container restarts
 
-If one current live broadcast is found, it is selected automatically. When multiple broadcasts are live, the app automatically selects only a uniquely strong title match to the previous broadcast. Ambiguous choices are shown in a `Select Live Stream` dropdown on the dashboard.
+If one current live broadcast is found, it is selected automatically. When multiple broadcasts are live, the app automatically selects only a uniquely strong title match to the previous broadcast.
+
+When multiple current broadcasts remain ambiguous:
+
+- The stream becomes `selection_required`
+- Other configured streams continue working normally
+- The dashboard shows a `Select Live Stream` dropdown with candidate titles and YouTube URLs
+- The selected broadcast becomes the saved source and preferred title for future repairs
 
 If one stream cannot be repaired, it is marked `no_live_found`. Other streams continue to refresh and serve normally.
 
 Whenever a stream works, the app also stores its stable YouTube channel URL and channel ID. Future repairs use that saved channel identity before guessing from the local stream name. This allows a stream such as local name `atv` to be repaired through its real YouTube handle or channel ID even if the old `watch?v=...` video becomes private or deleted.
+
+Discovery checks a limited number of recent `/streams` entries sequentially to reduce unnecessary YouTube requests. Ended public videos are not accepted as current live streams.
 
 ## Dashboard
 
@@ -73,6 +82,7 @@ Main controls:
 
 - `Add Channel`: add a new local stream name and YouTube URL
 - `Refresh`: refresh all streams and repair failed live links when possible
+- `Global refresh`: set the default interval from 1 through 5 hours or reset it to the environment default
 - `Download channels.txt`: download the current source list
 - `View Access Logs`: inspect stream access by IP and timestamp
 
@@ -80,8 +90,13 @@ Per-stream controls:
 
 - `Copy`: copy the current extracted M3U8 URL
 - `Download`: download a one-line `.m3u8` file
+- `Interval`: use the global default or override it from 1 through 5 hours
 - `Check Live`: immediately re-check one stream and repair changed live URLs
+- `Edit Source`: replace the YouTube source for a failed or `no_live_found` stream
+- `Select Live Stream`: choose the intended broadcast when multiple current live candidates are ambiguous
 - `Delete`: remove the stream
+
+New local handles are normalized to lowercase URL-safe slugs. Duplicate normalized handles and non-YouTube source URLs are rejected. Existing handles remain unchanged for backward compatibility.
 
 ## Redirect Usage
 
@@ -112,7 +127,7 @@ The named Docker volume is mounted at `/data` and stores:
 
 - `channels.txt`
 - `db.json`
-- `timestamps.txt`
+- `settings.json`, when a dashboard global interval override is saved
 
 This keeps persistent data separate from `/app`, so updating the container image actually updates the application code.
 
@@ -123,7 +138,10 @@ Database updates use file locking and atomic replacement so scheduled refreshes 
 ```text
 local_name,https://www.youtube.com/@channel/live
 local_name_2,https://www.youtube.com/watch?v=VIDEO_ID
+local_name_3,https://www.youtube.com/watch?v=VIDEO_ID,2
 ```
+
+The optional third column is that stream's refresh interval in whole hours from `1` through `5`. Rows without it use the global default. Repairs and source edits preserve interval overrides.
 
 ## Docker And Portainer
 
@@ -160,7 +178,7 @@ The image is published at:
 ghcr.io/rocket6317/youtube-cache-and-serve-redirect-url:latest
 ```
 
-GitHub Actions builds and publishes this image on every push to `main`.
+GitHub Actions runs the Python test suite, then builds and publishes this image on every push to `main`.
 
 ## Local Development
 
@@ -205,7 +223,7 @@ atv,https://www.youtube.com/@atvturkiye/live,2
 earthtv,https://www.youtube.com/watch?v=HfgIFGbdGJ0
 ```
 
-The scheduler checks hourly and refreshes only streams whose configured interval has elapsed. `Refresh` on the dashboard always refreshes every stream immediately.
+The scheduler checks hourly and refreshes only streams whose configured interval has elapsed. Every attempted refresh resets that stream's schedule, including failed attempts. `Refresh` on the dashboard ignores intervals and refreshes every stream immediately.
 
 The Docker image also sets:
 
@@ -244,7 +262,7 @@ Logs are printed to stdout for Portainer/Docker log viewing. Typical events incl
 
 Access logs are stored in `db.json` and visible from the dashboard.
 
-Access logs include request outcomes such as `redirected`, `repair_failed`, `repair_timeout`, and `cooldown`. Entries older than seven days are pruned during global refresh.
+Access logs include request outcomes such as `redirected`, `repair_failed`, `repair_timeout`, and `cooldown`. Entries older than seven days are pruned during global refresh. The dashboard displays the newest 200 raw events per page before grouping them by stream and client IP.
 
 ## Credits
 
