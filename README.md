@@ -1,5 +1,7 @@
 # YouTube Livestream Redirector Dashboard
 
+[![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/M4M31NTEGN)
+
 A lightweight Flask dashboard that turns YouTube livestreams into stable local redirect URLs for IPTV players and other clients.
 
 The app stores your stream list, extracts fresh YouTube HLS/M3U8 URLs with `yt-dlp`, and serves each stream through a stable endpoint:
