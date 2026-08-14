@@ -99,7 +99,7 @@ def read_channels_file():
             if not line or line.startswith("#"):
                 continue
             parts = line.split(CHANNELS_DELIM)
-            if len(parts) in (2, 3):
+            if len(parts) in (2, 3, 4):
                 name, url = parts[0].strip(), parts[1].strip()
                 if name and url:
                     channels[name] = url
@@ -113,16 +113,19 @@ def read_channel_configs():
     with open(CHANNELS_PATH, "r") as channel_file:
         for line in channel_file:
             parts = [part.strip() for part in line.strip().split(CHANNELS_DELIM)]
-            if not parts or not parts[0] or parts[0].startswith("#") or len(parts) not in (2, 3):
+            if not parts or not parts[0] or parts[0].startswith("#") or len(parts) not in (2, 3, 4):
                 continue
             interval = None
-            if len(parts) == 3 and parts[2]:
+            if len(parts) >= 3 and parts[2]:
                 try:
                     candidate = int(parts[2])
                     interval = candidate if 1 <= candidate <= 5 else None
                 except ValueError:
                     pass
-            configs[parts[0]] = {"url": parts[1], "refresh_hours": interval}
+            config = {"url": parts[1], "refresh_hours": interval}
+            if len(parts) == 4 and parts[3]:
+                config["fallback_url"] = parts[3]
+            configs[parts[0]] = config
     return configs
 
 def write_channels_file(channels_dict):
@@ -132,12 +135,16 @@ def write_channels_file(channels_dict):
         if isinstance(value, dict):
             url = value["url"]
             interval = value.get("refresh_hours")
+            fallback_url = value.get("fallback_url")
         else:
             url = value
             interval = None
+            fallback_url = None
         line = f"{name}{CHANNELS_DELIM}{url}"
-        if interval is not None:
-            line += f"{CHANNELS_DELIM}{interval}"
+        if interval is not None or fallback_url:
+            line += f"{CHANNELS_DELIM}{interval or ''}"
+        if fallback_url:
+            line += f"{CHANNELS_DELIM}{fallback_url}"
         lines.append(line)
     content = "\n".join(lines) + ("\n" if lines else "")
     with _file_lock(CHANNELS_PATH):

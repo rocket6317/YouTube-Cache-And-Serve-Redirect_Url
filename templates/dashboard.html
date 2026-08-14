@@ -14,7 +14,7 @@
         .empty { padding: 16px; background: #fff8e1; border: 1px solid #ffe082; border-radius: 6px; color: #5d4b00; margin-top: 10px; }
         .actions { display: flex; flex-wrap: wrap; gap: 6px; }
         .status { font-size: 13px; }
-        .status-ok, .status-repaired { color: #137333; font-weight: 600; }
+        .status-ok, .status-repaired, .status-fallback { color: #137333; font-weight: 600; }
         .status-no_live_found, .status-failed, .status-selection_required { color: #b3261e; font-weight: 600; }
         .muted { color: #666; font-size: 12px; margin-top: 4px; }
         .flash { padding: 10px 12px; margin-bottom: 12px; border: 1px solid #d7dce2; background: #f7f9fb; }
@@ -122,6 +122,11 @@
                     <form action="{{ url_for('check_live') }}" method="post">
                         <input type="hidden" name="name" value="{{ name }}">
                         <button type="submit">🔎 Check Live</button>
+                    </form>
+                    <form class="inline-form" action="{{ url_for('update_fallback') }}" method="post">
+                        <input type="hidden" name="name" value="{{ name }}">
+                        <input type="url" name="fallback_url" value="{{ config.get('fallback_url', '') }}" placeholder="Fallback M3U8 (optional)">
+                        <button type="submit">Save Fallback</button>
                     </form>
                     {% if status in ['failed', 'no_live_found'] %}
                     <form class="inline-form" action="{{ url_for('edit_source') }}" method="post">

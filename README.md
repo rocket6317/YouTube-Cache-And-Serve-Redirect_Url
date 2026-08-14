@@ -155,9 +155,18 @@ Database updates use file locking and atomic replacement so scheduled refreshes 
 local_name,https://www.youtube.com/@channel/live
 local_name_2,https://www.youtube.com/watch?v=VIDEO_ID
 local_name_3,https://www.youtube.com/watch?v=VIDEO_ID,2
+local_name_4,https://www.youtube.com/@channel/live,1,https://fallback.example.com/live.m3u8
 ```
 
 The optional third column is that stream's refresh interval in whole hours from `1` through `5`. Rows without it use the global default. Repairs and source edits preserve interval overrides.
+
+The optional fourth column is a direct fallback M3U8 URL. The application always tries the YouTube source first. If no current YouTube live stream exists, it serves the fallback until a later scheduled or manual refresh finds YouTube live again. Leave the third column empty when using a fallback with the global interval:
+
+```text
+local_name,https://www.youtube.com/@channel/live,,https://fallback.example.com/live.m3u8
+```
+
+Fallback URLs can also be added, changed, or removed from the dashboard. They are stored in `channels.txt` and survive container updates.
 
 ## Docker And Portainer
 
@@ -244,6 +253,8 @@ earthtv,https://www.youtube.com/watch?v=HfgIFGbdGJ0
 ```
 
 The scheduler checks hourly and refreshes only streams whose configured interval has elapsed. Every attempted refresh resets that stream's schedule, including failed attempts. `Refresh` on the dashboard ignores intervals and refreshes every stream immediately.
+
+Before redirecting a player, the application checks the age of cached Googlevideo manifests. If one has reached that stream's refresh interval, a single coordinated refresh runs before redirecting. Concurrent requests share that refresh, and failed attempts enter a cooldown, so playback does not query YouTube on every request. Direct fallback M3U8 URLs are excluded from this playback-time check.
 
 The Docker image also sets:
 

@@ -17,9 +17,9 @@ from scheduler import (
     scheduler_running,
     start_scheduler,
 )
-from stream_service import repair_stream, save_fetch_result
+from stream_service import cached_youtube_stream_is_stale, repair_stream, save_fetch_result
 from settings import get_global_interval, reset_global_interval, set_global_interval
-from validation import is_youtube_url, normalize_handle, parse_interval
+from validation import is_m3u8_url, is_youtube_url, normalize_handle, parse_interval
 from yourls import create_short_url
 
 logger = logging.getLogger("app")
@@ -40,14 +40,27 @@ def stream():
         return "Missing stream name", 400
 
     ip = request.headers.get('X-Forwarded-For', request.remote_addr).split(',')[0].strip()
+    streams = streams_table()
+    stream_data = streams.get(name, {})
+    channel_configs = read_channel_configs()
+    configured_channels = read_channels_file()
+    config = channel_configs.get(name, {})
+    interval = config.get("refresh_hours") or get_global_interval()
     url = get_stream(name)
+
+    if url and cached_youtube_stream_is_stale(stream_data, interval):
+        outcome = repair_coordinator.request(name, timeout=30)
+        if outcome == "redirected":
+            url = get_stream(name) or url
+        else:
+            logger.warning(f"Serving stale cached URL for {name}; refresh result: {outcome}")
 
     if url:
         log_access(name, ip, outcome="redirected")
         # Removed noisy INFO log line here
         return redirect(url)
 
-    if name not in read_channels_file() and name not in streams_table():
+    if name not in configured_channels and name not in channel_configs and name not in streams:
         logger.warning(f"Unknown stream {name} requested by client {ip}")
         return "Stream not found", 404
 
@@ -109,6 +122,7 @@ def add():
     if request.method == "POST":
         name = normalize_handle(request.form.get("name", ""))
         url = request.form.get("url", "").strip()
+        fallback_url = request.form.get("fallback_url", "").strip()
         try:
             interval = parse_interval(request.form.get("refresh_hours"))
         except (ValueError, TypeError):
@@ -124,6 +138,9 @@ def add():
         if not is_youtube_url(url):
             flash("Source must be a valid YouTube URL.", "warning")
             return redirect(url_for("add"))
+        if fallback_url and not is_m3u8_url(fallback_url):
+            flash("Fallback must be a valid HTTP(S) M3U8 URL.", "warning")
+            return redirect(url_for("add"))
 
         info = fetch_info(url)
         if info:
@@ -134,6 +151,8 @@ def add():
             logger.warning(f"Failed to add stream {name}")
 
         channels[name] = {"url": url, "refresh_hours": interval}
+        if fallback_url:
+            channels[name]["fallback_url"] = fallback_url
         write_channels_file(channels)
         stream_available = bool(info) or repair_stream(name)
         short_url = create_short_url(name)
@@ -211,6 +230,29 @@ def update_interval():
         flash(f"Refresh interval updated for {name}.", "success")
     except (ValueError, TypeError):
         flash("Refresh interval must be Default or between 1 and 5 hours.", "warning")
+    return redirect(url_for("dashboard"))
+
+
+@app.route("/dashboard/fallback", methods=["POST"])
+def update_fallback():
+    name = request.form.get("name", "").strip()
+    fallback_url = request.form.get("fallback_url", "").strip()
+    configs = read_channel_configs()
+    if name not in configs:
+        flash("Stream not found.", "warning")
+        return redirect(url_for("dashboard"))
+    if fallback_url and not is_m3u8_url(fallback_url):
+        flash("Fallback must be a valid HTTP(S) M3U8 URL.", "warning")
+        return redirect(url_for("dashboard"))
+    if fallback_url:
+        configs[name]["fallback_url"] = fallback_url
+    else:
+        configs[name].pop("fallback_url", None)
+    write_channels_file(configs)
+    if repair_stream(name):
+        flash(f"Fallback updated and stream refreshed for {name}.", "success")
+    else:
+        flash(f"Fallback updated for {name}; no stream is currently available.", "warning")
     return redirect(url_for("dashboard"))
 
 
@@ -314,8 +356,10 @@ def download_channels():
     lines = []
     for name, config in channels.items():
         line = f"{name},{config['url']}"
-        if config.get("refresh_hours") is not None:
-            line += f",{config['refresh_hours']}"
+        if config.get("refresh_hours") is not None or config.get("fallback_url"):
+            line += f",{config.get('refresh_hours') or ''}"
+        if config.get("fallback_url"):
+            line += f",{config['fallback_url']}"
         lines.append(line)
     content = "\n".join(lines)
     return Response(

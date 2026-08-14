@@ -152,6 +152,55 @@ class Stage2DashboardRouteTests(unittest.TestCase):
         self.assertEqual(configs["atv"]["refresh_hours"], 2)
         write_channels.assert_called_once_with(configs)
 
+    def test_dashboard_updates_fallback_url(self):
+        configs = {
+            "now": {
+                "url": "https://youtube.com/@now/live",
+                "refresh_hours": 1,
+            }
+        }
+        with (
+            patch.object(app_module, "read_channel_configs", return_value=configs),
+            patch.object(app_module, "write_channels_file") as write_channels,
+            patch.object(app_module, "repair_stream", return_value=True) as repair_stream,
+        ):
+            response = self.client.post(
+                "/dashboard/fallback",
+                data={
+                    "name": "now",
+                    "fallback_url": "https://fallback.example.com/now/live.m3u8",
+                },
+            )
+
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(
+            configs["now"]["fallback_url"],
+            "https://fallback.example.com/now/live.m3u8",
+        )
+        write_channels.assert_called_once_with(configs)
+        repair_stream.assert_called_once_with("now")
+
+    def test_dashboard_rejects_non_m3u8_fallback(self):
+        configs = {
+            "now": {
+                "url": "https://youtube.com/@now/live",
+                "refresh_hours": 1,
+            }
+        }
+        with (
+            patch.object(app_module, "read_channel_configs", return_value=configs),
+            patch.object(app_module, "write_channels_file") as write_channels,
+            patch.object(app_module, "repair_stream") as repair_stream,
+        ):
+            response = self.client.post(
+                "/dashboard/fallback",
+                data={"name": "now", "fallback_url": "https://fallback.example.com/video.mp4"},
+            )
+
+        self.assertEqual(response.status_code, 302)
+        write_channels.assert_not_called()
+        repair_stream.assert_not_called()
+
     def test_select_live_candidate_updates_source_and_preserves_interval(self):
         configs = {
             "tomorrowland": {"url": "https://youtube.com/watch?v=old", "refresh_hours": 2}

@@ -22,6 +22,18 @@ def is_youtube_url(value):
     )
 
 
+def is_m3u8_url(value):
+    try:
+        parsed = urlparse(value.strip())
+    except ValueError:
+        return False
+    return (
+        parsed.scheme in ("http", "https")
+        and bool(parsed.hostname)
+        and parsed.path.lower().endswith(".m3u8")
+    )
+
+
 def parse_interval(value):
     if value in (None, "", "default"):
         return None

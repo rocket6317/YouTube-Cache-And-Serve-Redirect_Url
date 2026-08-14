@@ -1,5 +1,6 @@
 import importlib
 import unittest
+from datetime import datetime, timedelta
 from unittest.mock import patch
 
 import scheduler
@@ -26,6 +27,53 @@ class StreamRouteTests(unittest.TestCase):
         self.assertEqual(response.status_code, 302)
         self.assertEqual(response.location, "https://example.com/live.m3u8")
         log_access.assert_called_once_with("atv", "127.0.0.1", outcome="redirected")
+
+    def test_stale_googlevideo_cache_repairs_before_redirect(self):
+        stale_stream = {
+            "m3u8": "https://manifest.googlevideo.com/api/manifest/hls_playlist/live.m3u8",
+            "last_success": (datetime.utcnow() - timedelta(hours=2)).isoformat(),
+        }
+        configs = {
+            "atv": {
+                "url": "https://youtube.com/@atv/live",
+                "refresh_hours": 1,
+            }
+        }
+        with (
+            patch.object(app_module, "streams_table", return_value={"atv": stale_stream}),
+            patch.object(app_module, "read_channel_configs", return_value=configs),
+            patch.object(
+                app_module,
+                "get_stream",
+                side_effect=[stale_stream["m3u8"], "https://manifest.googlevideo.com/fresh.m3u8"],
+            ),
+            patch.object(app_module.repair_coordinator, "request", return_value="redirected") as repair,
+            patch.object(app_module, "log_access"),
+        ):
+            response = self.client.get("/stream?name=atv")
+
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.location, "https://manifest.googlevideo.com/fresh.m3u8")
+        repair.assert_called_once_with("atv", timeout=30)
+
+    def test_direct_fallback_does_not_refresh_on_playback_request(self):
+        fallback_stream = {
+            "m3u8": "https://fallback.example.com/now/live.m3u8",
+            "status": "fallback",
+            "last_success": (datetime.utcnow() - timedelta(hours=2)).isoformat(),
+        }
+        with (
+            patch.object(app_module, "streams_table", return_value={"now": fallback_stream}),
+            patch.object(app_module, "read_channel_configs", return_value={}),
+            patch.object(app_module, "get_stream", return_value=fallback_stream["m3u8"]),
+            patch.object(app_module.repair_coordinator, "request") as repair,
+            patch.object(app_module, "log_access"),
+        ):
+            response = self.client.get("/stream?name=now")
+
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.location, fallback_stream["m3u8"])
+        repair.assert_not_called()
 
     def test_failed_repair_returns_503_with_retry_after_and_logs_outcome(self):
         with (

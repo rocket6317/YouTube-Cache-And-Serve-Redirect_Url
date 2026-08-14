@@ -9,7 +9,7 @@ import db
 import scheduler
 import settings
 import stream_service
-from validation import is_youtube_url, normalize_handle, parse_interval
+from validation import is_m3u8_url, is_youtube_url, normalize_handle, parse_interval
 
 
 class ChannelConfigTests(unittest.TestCase):
@@ -30,6 +30,18 @@ class ChannelConfigTests(unittest.TestCase):
         db.write_channels_file(configs)
         self.assertEqual(db.read_channel_configs(), configs)
         self.assertEqual(db.read_channels_file()["fast"], "https://youtube.com/@fast/live")
+
+    def test_fallback_m3u8_fourth_column_round_trip(self):
+        configs = {
+            "now": {
+                "url": "https://youtube.com/@now/live",
+                "refresh_hours": 1,
+                "fallback_url": "https://fallback.example.com/now/live.m3u8",
+            }
+        }
+        db.write_channels_file(configs)
+        self.assertEqual(db.read_channel_configs(), configs)
+        self.assertEqual(db.read_channels_file()["now"], "https://youtube.com/@now/live")
 
     def test_repair_source_update_preserves_interval_override(self):
         configs = {
@@ -129,12 +141,78 @@ class SchedulingTests(unittest.TestCase):
         refresh_stream.assert_called_once()
 
 
+class StreamFallbackTests(unittest.TestCase):
+    def test_offline_youtube_source_uses_fallback_without_replacing_source(self):
+        configs = {
+            "now": {
+                "url": "https://youtube.com/@now/live",
+                "refresh_hours": 1,
+                "fallback_url": "https://fallback.example.com/now/live.m3u8",
+            }
+        }
+        no_live = {
+            "m3u8": None,
+            "source_url": configs["now"]["url"],
+            "status": "no_live_found",
+            "last_error": "No current YouTube live stream found",
+        }
+        with (
+            patch.object(stream_service, "fetch_info", return_value=None),
+            patch.object(stream_service, "repair_live_info", return_value=no_live),
+            patch.object(stream_service, "save_fetch_result") as save_result,
+        ):
+            result = stream_service.refresh_stream(
+                "now",
+                configs["now"]["url"],
+                channels=configs,
+            )
+
+        self.assertEqual(result["status"], "fallback")
+        self.assertEqual(result["m3u8"], configs["now"]["fallback_url"])
+        self.assertEqual(result["source_url"], configs["now"]["url"])
+        save_result.assert_called_once_with(
+            "now",
+            configs["now"]["url"],
+            result,
+            channels=configs,
+            update_channels=False,
+        )
+
+    def test_youtube_live_takes_priority_over_configured_fallback(self):
+        configs = {
+            "now": {
+                "url": "https://youtube.com/@now/live",
+                "refresh_hours": 1,
+                "fallback_url": "https://fallback.example.com/now/live.m3u8",
+            }
+        }
+        youtube_live = {
+            "m3u8": "https://manifest.googlevideo.com/live.m3u8",
+            "source_url": configs["now"]["url"],
+            "status": "ok",
+        }
+        with (
+            patch.object(stream_service, "fetch_info", return_value=youtube_live),
+            patch.object(stream_service, "save_fetch_result") as save_result,
+        ):
+            result = stream_service.refresh_stream(
+                "now",
+                configs["now"]["url"],
+                channels=configs,
+            )
+
+        self.assertIs(result, youtube_live)
+        save_result.assert_called_once_with("now", configs["now"]["url"], youtube_live)
+
+
 class ValidationTests(unittest.TestCase):
     def test_handle_normalization_and_youtube_validation(self):
         self.assertEqual(normalize_handle(" My ATV Channel! "), "my-atv-channel")
         self.assertTrue(is_youtube_url("https://www.youtube.com/watch?v=abc"))
         self.assertTrue(is_youtube_url("https://youtu.be/abc"))
         self.assertFalse(is_youtube_url("https://example.com/watch?v=abc"))
+        self.assertTrue(is_m3u8_url("https://fallback.example.com/live.m3u8?token=abc"))
+        self.assertFalse(is_m3u8_url("https://fallback.example.com/live.mp4"))
         self.assertIsNone(parse_interval("default"))
         self.assertEqual(parse_interval("3"), 3)
         with self.assertRaises(ValueError):
