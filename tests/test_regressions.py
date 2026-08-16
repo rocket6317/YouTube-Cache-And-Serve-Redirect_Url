@@ -143,6 +143,26 @@ class StableChannelRepairTests(unittest.TestCase):
         )
         self.assertEqual(selected["title"], "Tomorrowland Freedom Stage Live")
 
+    def test_no_live_candidates_returns_no_live_found(self):
+        metadata = {
+            "title": "NOW Canli Yayin",
+            "channel_url": "https://www.youtube.com/@nowtvturkiye",
+            "channel_id": "UC-now",
+        }
+
+        with (
+            patch.object(fetcher, "_extract_info", return_value=None),
+            patch.object(fetcher, "_read_metadata", return_value=metadata),
+            patch.object(fetcher, "_extract_flat_playlist", return_value={"entries": []}),
+        ):
+            info = fetcher.repair_live_info(
+                "https://www.youtube.com/@nowtvturkiye/live",
+                "Now TV",
+            )
+
+        self.assertEqual(info["status"], "no_live_found")
+        self.assertIsNone(info["m3u8"])
+
 
 class AtomicDatabaseTests(unittest.TestCase):
     def setUp(self):

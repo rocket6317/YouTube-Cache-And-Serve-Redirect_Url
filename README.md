@@ -24,6 +24,7 @@ https://your-domain/stream?name=channelname
 - Dashboard selection for ambiguous multiple live broadcasts
 - Optional YOURLS short URLs for newly added streams, with saved dashboard links
 - On-demand repair when a configured stream has no cached M3U8
+- Five-minute cached playback validation for Googlevideo manifests and media segments
 - Shared per-stream repair with timeout and failed-repair cooldown
 - Shared global refresh lock to prevent overlapping refresh jobs
 - Hourly due-stream scheduling with configurable global and per-stream intervals
@@ -254,7 +255,7 @@ earthtv,https://www.youtube.com/watch?v=HfgIFGbdGJ0
 
 The scheduler checks hourly and refreshes only streams whose configured interval has elapsed. Every attempted refresh resets that stream's schedule, including failed attempts. `Refresh` on the dashboard ignores intervals and refreshes every stream immediately.
 
-Before redirecting a player, the application checks the age of cached Googlevideo manifests. If one has reached that stream's refresh interval, a single coordinated refresh runs before redirecting. Concurrent requests share that refresh, and failed attempts enter a cooldown, so playback does not query YouTube on every request. Direct fallback M3U8 URLs are excluded from this playback-time check.
+Before redirecting a player, the application validates cached Googlevideo playback by reading the manifest and one byte from its newest media segment. Results are cached for five minutes. This check does not query a YouTube page or API, and it catches media authorization that becomes invalid before the signed URL's advertised expiry. An invalid stream receives one coordinated repair attempt; it is not redirected if repair fails. Age-due streams still refresh at their configured interval, and a previously validated playable URL can continue to be served if that scheduled refresh fails. Concurrent requests share repairs, and failed attempts enter a cooldown. Direct fallback M3U8 URLs are excluded from Googlevideo validation.
 
 The Docker image also sets:
 

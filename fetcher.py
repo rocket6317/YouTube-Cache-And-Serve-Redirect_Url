@@ -176,6 +176,8 @@ def _discover_live_candidates(
 
 
 def _select_live_candidate(candidates, previous_title):
+    if not candidates:
+        return None
     if len(candidates) == 1:
         return candidates[0]
     expected = _normalise_title(previous_title)

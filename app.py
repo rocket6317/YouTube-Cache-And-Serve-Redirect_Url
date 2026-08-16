@@ -9,6 +9,7 @@ from db import (
     read_channels_file, read_channel_configs, write_channels_file, load_db
 )
 from fetcher import fetch_info
+from hls_health import youtube_stream_is_playable
 from config import UPDATE_INTERVAL_HOURS
 from repair_coordinator import RepairCoordinator
 from runtime_health import check_readiness
@@ -48,12 +49,38 @@ def stream():
     interval = config.get("refresh_hours") or get_global_interval()
     url = get_stream(name)
 
-    if url and cached_youtube_stream_is_stale(stream_data, interval):
+    cached_url = url
+    cached_playable = youtube_stream_is_playable(url) if url else False
+    if url and (
+        not cached_playable
+        or cached_youtube_stream_is_stale(stream_data, interval)
+    ):
         outcome = repair_coordinator.request(name, timeout=30)
         if outcome == "redirected":
-            url = get_stream(name) or url
-        else:
+            refreshed_url = get_stream(name) or url
+            if youtube_stream_is_playable(refreshed_url):
+                url = refreshed_url
+            elif cached_playable:
+                url = cached_url
+                logger.warning(
+                    f"Serving playable cached URL for {name}; refreshed media failed validation"
+                )
+            else:
+                outcome = "invalid_media"
+                url = None
+        elif cached_playable:
             logger.warning(f"Serving stale cached URL for {name}; refresh result: {outcome}")
+        else:
+            url = None
+
+        if not url:
+            log_access(name, ip, outcome=outcome)
+            logger.warning(f"Stream {name} unavailable for client {ip}: {outcome}")
+            return Response(
+                "Stream temporarily unavailable",
+                status=503,
+                headers={"Retry-After": "30"},
+            )
 
     if url:
         log_access(name, ip, outcome="redirected")
