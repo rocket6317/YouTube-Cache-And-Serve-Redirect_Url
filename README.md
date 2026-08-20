@@ -2,13 +2,15 @@
 
 [![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/M4M31NTEGN)
 
-A lightweight Flask dashboard that turns YouTube livestreams into stable local redirect URLs for IPTV players and other clients.
+A lightweight Flask dashboard that turns YouTube livestreams into stable playback URLs for IPTV players and other clients.
 
 The app stores your stream list, extracts fresh YouTube HLS/M3U8 URLs with `yt-dlp`, and serves each stream through a stable endpoint:
 
 ```text
 https://your-domain/stream?name=channelname
 ```
+
+Current production-tested release: [`20.08.26 - v1.4.0`](https://github.com/rocket6317/YouTube-Cache-And-Serve-Redirect_Url/releases/tag/20.08.26). See [Project State](docs/PROJECT_STATE.md) for the verified architecture, tests, image digest, and rollback point.
 
 ## Features
 
@@ -215,7 +217,20 @@ The image is published at:
 ghcr.io/rocket6317/youtube-cache-and-serve-redirect-url:latest
 ```
 
+Every successful `main` build also publishes an immutable commit tag. Production
+deployments can pin that tag or its image digest when repeatable deployment is
+more important than following `latest` automatically.
+
 GitHub Actions runs the Python test suite, then builds and publishes this image on every push to `main`.
+
+### Rollback
+
+Before recreating a production container, back up the complete `/data` mount and
+the active Compose configuration. The tested pre-adaptive implementation is
+available from the
+[`pre-adaptive-hls-20260820`](https://github.com/rocket6317/YouTube-Cache-And-Serve-Redirect_Url/releases/tag/pre-adaptive-hls-20260820)
+release. Restore the matching data snapshot and pin the release's immutable image
+digest if rollback is required.
 
 ## Local Development
 
