@@ -9,6 +9,7 @@ from db import (
     write_channels_file,
 )
 from fetcher import fetch_info, repair_live_info
+from adaptive_hls import adaptive_stream_is_ready
 
 logger = logging.getLogger("stream_service")
 
@@ -29,12 +30,17 @@ def _use_fallback_if_offline(name, source_url, info, channels):
         "m3u8": fallback_url,
         "source_url": source_url,
         "status": "fallback",
+        "stream_mode": "legacy",
         "last_error": "No current YouTube live stream found; using configured fallback",
     }
 
 
 def cached_youtube_stream_is_stale(stream, interval_hours, now=None):
-    m3u8 = stream.get("m3u8") or ""
+    m3u8 = (
+        stream.get("video_m3u8")
+        if stream.get("stream_mode") == "adaptive"
+        else stream.get("m3u8")
+    ) or ""
     try:
         host = (urlparse(m3u8).hostname or "").lower()
     except ValueError:
@@ -62,6 +68,15 @@ def save_fetch_result(name, original_url, info, channels=None, update_channels=F
         channel_id=info.get("channel_id"),
         title=info.get("title"),
         live_candidates=info.get("live_candidates"),
+        stream_mode=info.get("stream_mode"),
+        video_m3u8=info.get("video_m3u8"),
+        audio_m3u8=info.get("audio_m3u8"),
+        video_codec=info.get("video_codec"),
+        audio_codec=info.get("audio_codec"),
+        video_width=info.get("video_width"),
+        video_height=info.get("video_height"),
+        video_fps=info.get("video_fps"),
+        bandwidth=info.get("bandwidth"),
     )
     if update_channels and new_url != original_url:
         current_channels = channels if channels is not None else read_channel_configs()
@@ -99,7 +114,7 @@ def repair_stream(name, channels=None):
         channels=current_channels,
         update_channels=info.get("status") != "fallback",
     )
-    return bool(info.get("m3u8"))
+    return bool(info.get("m3u8") or adaptive_stream_is_ready(info))
 
 
 def refresh_stream(name, url, channels=None, existing=None):

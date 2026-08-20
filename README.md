@@ -12,7 +12,7 @@ https://your-domain/stream?name=channelname
 
 ## Features
 
-- Stable `/stream?name=...` redirect URLs for IPTV clients
+- Stable `/stream?name=...` playback URLs for IPTV clients
 - Dashboard to add, delete, refresh, repair, and inspect streams
 - `yt-dlp` based M3U8 extraction
 - Automatic scheduled refresh
@@ -25,6 +25,9 @@ https://your-domain/stream?name=channelname
 - Optional YOURLS short URLs for newly added streams, with saved dashboard links
 - On-demand repair when a configured stream has no cached M3U8
 - Five-minute cached playback validation for Googlevideo manifests and media segments
+- Adaptive YouTube HLS support with separate audio and video playlists
+- Automatic signed-playlist refresh during adaptive playback
+- Direct YouTube media delivery; the app proxies only small HLS playlists
 - Shared per-stream repair with timeout and failed-repair cooldown
 - Shared global refresh lock to prevent overlapping refresh jobs
 - Hourly due-stream scheduling with configurable global and per-stream intervals
@@ -115,7 +118,7 @@ The returned short URL is saved with the stream and displayed below its stable I
 
 YOURLS links are created when new streams are added. Streams that existed before YOURLS was configured are not automatically backfilled; they can continue using their stable IPTV URLs unless short links are created separately.
 
-## Redirect Usage
+## Playback Usage
 
 Use the local handle from the dashboard:
 
@@ -124,7 +127,11 @@ https://your-domain/stream?name=channelname
 http://localhost:6095/stream?name=channelname
 ```
 
-The client is redirected to the latest cached YouTube M3U8 URL.
+Legacy combined YouTube streams redirect the client to the latest cached M3U8 URL, preserving the original behavior for existing working channels.
+
+When YouTube supplies separate audio and video playlists, `/stream` returns a small stable master M3U8. Its internal audio and video playlist URLs are reloaded through the app, so a scheduled or on-demand refresh can replace expired signed YouTube URLs during playback. Media segments still travel directly from YouTube to the IPTV client; the application does not relay the video payload.
+
+Adaptive media playlists are reduced to a rolling 12-segment window before being returned. This keeps playlist requests small while maintaining about one minute of live buffering.
 
 When a configured stream has no cached M3U8, `/stream` automatically starts or joins one background repair attempt for that stream. Requests wait up to 30 seconds. If repair cannot complete, the endpoint returns `503 Service Unavailable` with `Retry-After: 30`. Failed repairs enter a five-minute in-memory cooldown to reduce repeated YouTube queries.
 
@@ -225,7 +232,6 @@ Create a virtual environment:
 python3 -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
-pip install --upgrade yt-dlp
 ```
 
 Run locally:
@@ -255,7 +261,9 @@ earthtv,https://www.youtube.com/watch?v=HfgIFGbdGJ0
 
 The scheduler checks hourly and refreshes only streams whose configured interval has elapsed. Every attempted refresh resets that stream's schedule, including failed attempts. `Refresh` on the dashboard ignores intervals and refreshes every stream immediately.
 
-Before redirecting a player, the application validates cached Googlevideo playback by reading the manifest and one byte from its newest media segment. Results are cached for five minutes. This check does not query a YouTube page or API, and it catches media authorization that becomes invalid before the signed URL's advertised expiry. An invalid stream receives one coordinated repair attempt; it is not redirected if repair fails. Age-due streams still refresh at their configured interval, and a previously validated playable URL can continue to be served if that scheduled refresh fails. Concurrent requests share repairs, and failed attempts enter a cooldown. Direct fallback M3U8 URLs are excluded from Googlevideo validation.
+Before serving a player, the application validates cached Googlevideo playback by reading the manifest and one byte from its newest media segment. Results are cached for five minutes. This check does not query a YouTube page or API, and it catches media authorization that becomes invalid before the signed URL's advertised expiry. An invalid stream receives one coordinated repair attempt; it is not served if repair fails. Age-due streams still refresh at their configured interval, and a previously validated playable URL can continue to be served if that scheduled refresh fails. Concurrent requests share repairs, and failed attempts enter a cooldown. Direct fallback M3U8 URLs are excluded from Googlevideo validation.
+
+The container pins the tested `yt-dlp` 2026.08.19 release. This release supports YouTube's current adaptive live format, where extraction can return separate video and audio playlists instead of one combined URL. Dependency installation is deterministic; Docker builds no longer upgrade `yt-dlp` to an untested version automatically.
 
 The Docker image also sets:
 

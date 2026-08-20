@@ -19,8 +19,7 @@ COPY . .
 
 # Python dependencies
 RUN pip install --no-cache-dir --upgrade pip \
-    && pip install --no-cache-dir -r requirements.txt \
-    && pip install --no-cache-dir --upgrade yt-dlp
+    && pip install --no-cache-dir -r requirements.txt
 
 # Run Gunicorn with a single worker
 ENV GUNICORN_CMD_ARGS="--workers=1 --threads=2 --timeout=120"

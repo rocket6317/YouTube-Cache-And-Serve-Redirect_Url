@@ -83,6 +83,8 @@
         </thead>
         <tbody>
             {% for name, data in streams.items() %}
+            {% set stable_stream_url = stream_base_url ~ '/stream?name=' ~ (name|urlencode) %}
+            {% set playback_url = stable_stream_url if data.get('stream_mode') == 'adaptive' else data.get('m3u8', '') %}
             <tr>
                 <td>{{ data.get('channel', '—') }}</td>
                 <td>{{ name }}</td>
@@ -101,8 +103,8 @@
                     {% endif %}
                 </td>
                 <td>
-                    <button type="button" onclick="copyToClipboard('{{ data.get('m3u8', '') }}')">📋 Copy</button>
-                    <button type="button" onclick="downloadM3U8('{{ name }}', '{{ data.get('m3u8', '') }}')">⬇️ Download</button>
+                    <button type="button" onclick="copyToClipboard('{{ playback_url }}')">📋 Copy</button>
+                    <button type="button" onclick="downloadM3U8('{{ name }}', '{{ playback_url }}')">⬇️ Download</button>
                 </td>
                 <td>
                     {% set config = channel_configs.get(name, {}) %}

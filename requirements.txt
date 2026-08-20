@@ -1,5 +1,6 @@
 Flask==3.0.3
 tinydb==4.8.0
 gunicorn==23.0.0
-yt-dlp==2025.11.12
+yt-dlp @ https://github.com/yt-dlp/yt-dlp/releases/download/2026.08.19/yt-dlp.tar.gz
 APScheduler==3.10.4
+m3u8==6.0.0

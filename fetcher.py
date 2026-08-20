@@ -34,15 +34,34 @@ def _extract_info(url, channel_name=None, fatal=False):
 
 def _normalise_stream_info(info, source_url, channel_name=None, repaired=False):
     stream_url = info.get("url")
-    if not stream_url:
+    requested_formats = info.get("requested_formats") or []
+    video_format = next(
+        (
+            item
+            for item in requested_formats
+            if item.get("url") and item.get("vcodec") not in (None, "none")
+        ),
+        None,
+    )
+    audio_format = next(
+        (
+            item
+            for item in requested_formats
+            if item.get("url") and item.get("vcodec") == "none"
+        ),
+        None,
+    )
+    is_adaptive = not stream_url and video_format and audio_format
+    if not stream_url and not is_adaptive:
         print(
             f"[ERROR] No stream URL found for '{channel_name or source_url}' at {datetime.utcnow()}"
         )
         return None
 
-    return {
+    result = {
         "url": stream_url,
         "m3u8": stream_url,
+        "stream_mode": "legacy" if stream_url else "adaptive",
         "channel": info.get("channel") or info.get("uploader"),
         "channel_url": info.get("channel_url") or info.get("uploader_url"),
         "channel_id": info.get("channel_id") or info.get("uploader_id"),
@@ -54,6 +73,22 @@ def _normalise_stream_info(info, source_url, channel_name=None, repaired=False):
         "status": "ok",
         "last_error": None,
     }
+    if is_adaptive:
+        video_tbr = float(video_format.get("tbr") or 0)
+        audio_tbr = float(audio_format.get("tbr") or 0)
+        result.update(
+            {
+                "video_m3u8": video_format["url"],
+                "audio_m3u8": audio_format["url"],
+                "video_codec": video_format.get("vcodec"),
+                "audio_codec": audio_format.get("acodec") or "mp4a.40.2",
+                "video_width": video_format.get("width"),
+                "video_height": video_format.get("height"),
+                "video_fps": video_format.get("fps"),
+                "bandwidth": int((video_tbr + audio_tbr) * 1000) or 6_000_000,
+            }
+        )
+    return result
 
 
 def fetch_info(url, channel_name=None):

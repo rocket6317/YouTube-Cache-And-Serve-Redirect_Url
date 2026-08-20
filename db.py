@@ -174,14 +174,39 @@ def update_stream(
     channel_id=None,
     title=None,
     live_candidates=None,
+    stream_mode=None,
+    video_m3u8=None,
+    audio_m3u8=None,
+    video_codec=None,
+    audio_codec=None,
+    video_width=None,
+    video_height=None,
+    video_fps=None,
+    bandwidth=None,
 ):
     def mutate(data):
         existing = data["streams"].get(name, {})
+        mode = stream_mode or ("legacy" if m3u8 else existing.get("stream_mode"))
         stream = {
             "url": url,
-            "m3u8": m3u8,
+            "m3u8": existing.get("m3u8") if mode == "adaptive" else m3u8,
             "channel": channel,
         }
+        if mode:
+            stream["stream_mode"] = mode
+        if mode == "adaptive":
+            for key, value in (
+                ("video_m3u8", video_m3u8),
+                ("audio_m3u8", audio_m3u8),
+                ("video_codec", video_codec),
+                ("audio_codec", audio_codec),
+                ("video_width", video_width),
+                ("video_height", video_height),
+                ("video_fps", video_fps),
+                ("bandwidth", bandwidth),
+            ):
+                if value is not None:
+                    stream[key] = value
         if status:
             stream["status"] = status
         elif existing.get("status"):
@@ -201,7 +226,7 @@ def update_stream(
             stream["live_candidates"] = live_candidates
         if existing.get("last_success"):
             stream["last_success"] = existing.get("last_success")
-        if m3u8:
+        if m3u8 or (mode == "adaptive" and video_m3u8 and audio_m3u8):
             stream["last_success"] = datetime.utcnow().isoformat()
         stream["last_checked"] = datetime.utcnow().isoformat()
         data["streams"][name] = stream

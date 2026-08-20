@@ -117,6 +117,33 @@ class Stage2DashboardRouteTests(unittest.TestCase):
             response.data,
         )
 
+    def test_adaptive_dashboard_controls_use_stable_url_not_rollback_manifest(self):
+        with (
+            patch.dict(app_module.os.environ, {"PUBLIC_STREAM_BASE_URL": "https://stream.example.com"}),
+            patch.object(
+                app_module,
+                "streams_table",
+                return_value={
+                    "channel": {
+                        "url": "https://youtube.com/@channel/live",
+                        "m3u8": "https://manifest.googlevideo.com/rollback.m3u8",
+                        "stream_mode": "adaptive",
+                        "status": "ok",
+                    }
+                },
+            ),
+            patch.object(app_module, "read_channel_configs", return_value={}),
+            patch.object(app_module, "load_db", return_value={}),
+            patch.object(app_module, "get_global_interval", return_value=5),
+        ):
+            response = self.client.get("/dashboard")
+
+        self.assertIn(
+            b"copyToClipboard('https://stream.example.com/stream?name=channel')",
+            response.data,
+        )
+        self.assertNotIn(b"copyToClipboard('https://manifest.googlevideo.com", response.data)
+
     def test_add_rejects_normalized_collision_with_existing_handle(self):
         with (
             patch.object(

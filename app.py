@@ -10,6 +10,11 @@ from db import (
 )
 from fetcher import fetch_info
 from hls_health import youtube_stream_is_playable
+from adaptive_hls import (
+    adaptive_stream_is_ready,
+    build_master_playlist,
+    load_media_playlist,
+)
 from config import UPDATE_INTERVAL_HOURS
 from repair_coordinator import RepairCoordinator
 from runtime_health import check_readiness
@@ -34,6 +39,28 @@ logger.info("Starting scheduler and reading channels.txt at launch...")
 start_scheduler()
 
 
+def _playlist_response(body):
+    return Response(
+        body,
+        mimetype="application/vnd.apple.mpegurl",
+        headers={
+            "Cache-Control": "no-store",
+            "Pragma": "no-cache",
+            "X-Accel-Buffering": "no",
+        },
+    )
+
+
+def _serve_adaptive_master(name, stream_data, ip):
+    master = build_master_playlist(
+        stream_data,
+        url_for("adaptive_media_playlist", kind="video", name=name),
+        url_for("adaptive_media_playlist", kind="audio", name=name),
+    )
+    log_access(name, ip, outcome="adaptive")
+    return _playlist_response(master)
+
+
 @app.route("/stream")
 def stream():
     name = request.args.get("name")
@@ -47,6 +74,14 @@ def stream():
     configured_channels = read_channels_file()
     config = channel_configs.get(name, {})
     interval = config.get("refresh_hours") or get_global_interval()
+    if adaptive_stream_is_ready(stream_data):
+        if cached_youtube_stream_is_stale(stream_data, interval):
+            repair_coordinator.request(name, timeout=30)
+            refreshed = streams_table().get(name, {})
+            if adaptive_stream_is_ready(refreshed):
+                stream_data = refreshed
+        return _serve_adaptive_master(name, stream_data, ip)
+
     url = get_stream(name)
 
     cached_url = url
@@ -57,6 +92,9 @@ def stream():
     ):
         outcome = repair_coordinator.request(name, timeout=30)
         if outcome == "redirected":
+            refreshed_stream = streams_table().get(name, {})
+            if adaptive_stream_is_ready(refreshed_stream):
+                return _serve_adaptive_master(name, refreshed_stream, ip)
             refreshed_url = get_stream(name) or url
             if youtube_stream_is_playable(refreshed_url):
                 url = refreshed_url
@@ -93,6 +131,9 @@ def stream():
 
     outcome = repair_coordinator.request(name, timeout=30)
     if outcome == "redirected":
+        refreshed_stream = streams_table().get(name, {})
+        if adaptive_stream_is_ready(refreshed_stream):
+            return _serve_adaptive_master(name, refreshed_stream, ip)
         url = get_stream(name)
         if url:
             log_access(name, ip, outcome="redirected")
@@ -105,6 +146,40 @@ def stream():
         "Stream temporarily unavailable",
         status=503,
         headers={"Retry-After": "30"},
+    )
+
+
+@app.route("/hls/<kind>")
+def adaptive_media_playlist(kind):
+    name = request.args.get("name")
+    if not name or kind not in ("video", "audio"):
+        return "Invalid adaptive playlist request", 400
+
+    field = f"{kind}_m3u8"
+    last_outcome = "invalid_media"
+    for attempt in range(2):
+        stream_data = streams_table().get(name, {})
+        if not adaptive_stream_is_ready(stream_data):
+            return "Adaptive stream not found", 404
+        upstream_url = stream_data.get(field)
+
+        try:
+            if youtube_stream_is_playable(upstream_url):
+                return _playlist_response(load_media_playlist(upstream_url))
+        except Exception as exc:
+            logger.warning(f"Adaptive {kind} playlist failed for {name}: {exc}")
+
+        if attempt == 0:
+            last_outcome = repair_coordinator.request(name, timeout=30)
+            if last_outcome == "redirected":
+                continue
+        break
+
+    logger.warning(f"Adaptive {kind} playlist unavailable for {name}: {last_outcome}")
+    return Response(
+        "Stream temporarily unavailable",
+        status=503,
+        headers={"Retry-After": "15", "Cache-Control": "no-store"},
     )
 
 @app.route("/dashboard")
